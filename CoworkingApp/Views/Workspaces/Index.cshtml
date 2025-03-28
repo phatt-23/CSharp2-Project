@@ -1,0 +1,28 @@
+@model IEnumerable<CoworkingApp.Models.DataModels.Workspace>
+
+@{
+    ViewBag.Title = "title";
+    Layout = "_Layout";
+}
+
+<h2>Workspaces</h2>
+
+<span><a asp-action="Create">Create new workspace</a></span>
+
+<table>
+    <thead>
+        <td><b>Name</b></td>
+        <td><b>Description</b></td>
+    </thead>
+    @foreach (var workspace in Model)
+    {
+        <tr>
+            <td>@workspace.Name</td>
+            <td>@workspace.Description</td>
+            <td>
+                <a asp-action="Detail" asp-route-id="@workspace.Id">Detail</a>
+                <a asp-action="Edit" asp-route-id="@workspace.Id">Edit</a>
+            </td>
+        </tr>
+    }
+</table>

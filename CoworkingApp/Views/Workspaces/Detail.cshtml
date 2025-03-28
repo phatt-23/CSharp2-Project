@@ -1,0 +1,29 @@
+@model CoworkingApp.Models.DataModels.Workspace
+
+@{
+    ViewBag.Title = "title";
+    Layout = "_Layout";
+}
+
+<h2>Workspace Detail</h2>
+
+<a asp-action="Index">Go back to listing</a>
+
+<article>
+    <dl>    
+        <dt>ID</dt>
+        <dd>@Model.Id</dd>
+
+        <dt>Name</dt>
+        <dd>@Model.Name</dd>
+        
+        <dt>Description</dt>
+        <dd>@Model.Description</dd>
+        
+        <dt>Status</dt>
+        <dd>@Model.Status.Name</dd>
+        
+        <dt>Coworking Center</dt>
+        <dd>@Model.CoworkingCenter.Name</dd>
+    </dl>
+</article>
