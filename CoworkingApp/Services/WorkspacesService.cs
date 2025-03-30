@@ -7,63 +7,69 @@ namespace CoworkingApp.Services;
 
 public class WorkspacesService(CoworkingDbContext context)
 {
-    private readonly CoworkingDbContext _context = context;
-
     /// Returns the filtered and paginated workspaces
     /// and total count mathing the filtering (before pagination).
-    public async Task<(ICollection<Workspace>, int)> GetAsync(WorkspacesQueryDto query)
+    public async Task<(IEnumerable<Workspace>, int)> GetAsync(WorkspacesQueryDto query)
     {
-        var workspaces = _context.Workspaces
+        var workspaces = context.Workspaces
             .AsQueryable();
 
-        if (query.Id.HasValue)
-            workspaces = workspaces.Where(w => w.Id == query.Id);
-        
         if (!string.IsNullOrWhiteSpace(query.Name))
             workspaces = workspaces.Where(w => w.Name == query.Name);
-        
         if (query.StatusId.HasValue)
             workspaces = workspaces.Where(w => w.StatusId == query.StatusId);
 
-        // count the total mathing the query 
         var totalCount = await workspaces.CountAsync();
 
         workspaces = workspaces
-            .Skip((query.Page - 1) * query.PageSize)
+            .Skip((query.PageNumber - 1) * query.PageSize)
             .Take(query.PageSize)
             .Include(w => w.CoworkingCenter)
             .Include(w => w.Status);
 
-        return (workspaces.ToList(), totalCount);
+        return (workspaces, totalCount);
     }
 
-    public async Task<Workspace> CreateAsync(WorkspaceCreateRequestDto workspaceCreateRequestReqeust)
+    public async Task<Workspace?> GetByIdAsync(int id)
+    {
+        return await context.Workspaces
+            .Where(w => w.Id == id)
+            .Include(w => w.CoworkingCenter)
+            .Include(w => w.Status)
+            .SingleOrDefaultAsync();
+    }
+
+    public IEnumerable<WorkspaceHistory> GetHistoriesOfWorkspace(int id)
+        => context.WorkspaceHistories
+            .Where(w => w.Id == id);
+
+    public async Task<Workspace> CreateAsync(WorkspaceCreateRequestDto request)
     {
         var workspace = new Workspace
         {
-            Name = workspaceCreateRequestReqeust.Name,
-            Description = workspaceCreateRequestReqeust.Description,
-            StatusId = workspaceCreateRequestReqeust.StatusId,
-            CoworkingCenterId = workspaceCreateRequestReqeust.CoworkingCenterId,
+            Name = request.Name,
+            Description = request.Description,
+            StatusId = request.StatusId,
+            CoworkingCenterId = request.CoworkingCenterId,
         };
         
-        var addedWorkspace = await _context.Workspaces.AddAsync(workspace);
-        await _context.SaveChangesAsync();
+        var addedWorkspace = await context.Workspaces.AddAsync(workspace);
+        await context.SaveChangesAsync();
         
         return addedWorkspace.Entity;
     }
 
     public async Task<bool> UpdateStatusAsync(int workspaceId, int statusId)
     {
-        var workspace = await _context.Workspaces.FindAsync(workspaceId);
+        var workspace = await context.Workspaces.FindAsync(workspaceId);
         if (workspace == null)
             return false;
 
-        if (!_context.WorkspaceStatuses.Any(ws => ws.Id == statusId))
+        if (!context.WorkspaceStatuses.Any(ws => ws.Id == statusId))
             return false;
         
         workspace.StatusId = statusId;
-        _context.Update(workspace);
+        context.Update(workspace);
 
         var history = new WorkspaceHistory
         {
@@ -71,9 +77,18 @@ public class WorkspacesService(CoworkingDbContext context)
             StatusId = statusId,
         };
 
-        _context.WorkspaceHistories.Add(history);
+        context.WorkspaceHistories.Add(history);
         
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<Workspace?> RemoveByIdAsync(int id)
+    {
+        var workspace = await context.Workspaces.FindAsync(id);
+        if (workspace is null)
+            return null;
+
+        return context.Workspaces.Remove(workspace).Entity;
     }
 }

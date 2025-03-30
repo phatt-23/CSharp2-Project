@@ -2,12 +2,10 @@ using System.Diagnostics;
 using CoworkingApp.Models;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CoworkingApp.Controllers;
+namespace CoworkingApp.Controllers.MVC;
 
-public class HomeController(ILogger<HomeController> logger) : Controller
+public class HomeController : Controller
 {
-    private readonly ILogger<HomeController> _logger = logger;
-
     public IActionResult Index()
     {
         return View();

@@ -24,6 +24,18 @@ public partial class User
     [Column("role_id")]
     public int RoleId { get; set; }
 
+    [Column("created_at", TypeName = "timestamp without time zone")]
+    public DateTime CreatedAt { get; set; }
+
+    [Column("refresh_token")]
+    public string? RefreshToken { get; set; } 
+    
+    [Column("refresh_token_expiry", TypeName = "timestamp without time zone")]
+    public DateTime? RefreshTokenExpiry { get; set; }
+    
+    [InverseProperty("Customer")]
+    public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
+
     [ForeignKey("RoleId")]
     [InverseProperty("Users")]
     public virtual UserRole Role { get; set; } = null!;

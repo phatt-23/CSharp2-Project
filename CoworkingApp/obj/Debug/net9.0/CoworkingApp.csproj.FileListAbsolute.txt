@@ -457,3 +457,15 @@
 /home/phatt/RiderProjects/CoworkingApp/CoworkingApp/obj/Debug/net9.0/compressed/orjww1u86d-lgo1ad9m3t.gz
 /home/phatt/RiderProjects/CoworkingApp/CoworkingApp/obj/Debug/net9.0/compressed/oszyymquor-t77p7s1h44.gz
 /home/phatt/RiderProjects/CoworkingApp/CoworkingApp/bin/Debug/net9.0/Swashbuckle.AspNetCore.SwaggerUI.dll
+/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/obj/Debug/net9.0/CoworkingApp.sourcelink.json
+/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/bin/Debug/net9.0/Microsoft.AspNetCore.OpenApi.dll
+/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/bin/Debug/net9.0/Scalar.AspNetCore.dll
+/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/bin/Debug/net9.0/AutoMapper.dll
+/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/bin/Debug/net9.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll
+/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/bin/Debug/net9.0/Microsoft.IdentityModel.Abstractions.dll
+/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/bin/Debug/net9.0/Microsoft.IdentityModel.JsonWebTokens.dll
+/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/bin/Debug/net9.0/Microsoft.IdentityModel.Logging.dll
+/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/bin/Debug/net9.0/Microsoft.IdentityModel.Protocols.dll
+/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/bin/Debug/net9.0/Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/bin/Debug/net9.0/Microsoft.IdentityModel.Tokens.dll
+/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/bin/Debug/net9.0/System.IdentityModel.Tokens.Jwt.dll

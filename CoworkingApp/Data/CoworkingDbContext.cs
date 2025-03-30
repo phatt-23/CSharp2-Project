@@ -37,13 +37,22 @@ public partial class CoworkingDbContext : DbContext
         modelBuilder.Entity<CoworkingCenter>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("coworking_center_pkey");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
         });
 
         modelBuilder.Entity<Reservation>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("reservation_pkey");
 
-            entity.HasOne(d => d.Pricing).WithMany(p => p.Reservations).HasConstraintName("reservation_pricing_id_fkey");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.IsCancelled).HasDefaultValue(false);
+
+            entity.HasOne(d => d.Customer).WithMany(p => p.Reservations).HasConstraintName("reservation_customer_id_fkey");
+
+            entity.HasOne(d => d.Pricing).WithMany(p => p.Reservations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("reservation_pricing_id_fkey");
 
             entity.HasOne(d => d.Workspace).WithMany(p => p.Reservations)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -53,6 +62,8 @@ public partial class CoworkingDbContext : DbContext
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("user_pkey");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
             entity.HasOne(d => d.Role).WithMany(p => p.Users)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -67,6 +78,9 @@ public partial class CoworkingDbContext : DbContext
         modelBuilder.Entity<Workspace>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("workspace_pkey");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.IsRemoved).HasDefaultValue(false);
 
             entity.HasOne(d => d.CoworkingCenter).WithMany(p => p.Workspaces)
                 .OnDelete(DeleteBehavior.ClientSetNull)

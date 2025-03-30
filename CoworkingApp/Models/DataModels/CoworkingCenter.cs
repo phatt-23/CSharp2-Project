@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace CoworkingApp.Models.DataModels;
@@ -29,7 +28,6 @@ public partial class CoworkingCenter
     [Precision(9, 6)]
     public decimal Longitude { get; set; }
 
-    [InverseProperty("CoworkingCenter")]
-    [JsonIgnore]
-    public virtual ICollection<Workspace> Workspaces { get; set; } = new List<Workspace>();
+    [Column("created_at", TypeName = "timestamp without time zone")]
+    public DateTime CreatedAt { get; set; }
 }

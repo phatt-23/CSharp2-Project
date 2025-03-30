@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace CoworkingApp.Models.DataModels;
@@ -22,14 +21,4 @@ public partial class WorkspaceHistory
 
     [Column("created_at", TypeName = "timestamp without time zone")]
     public DateTime CreatedAt { get; set; }
-
-    [ForeignKey("StatusId")]
-    [InverseProperty("WorkspaceHistories")]
-    [JsonIgnore]
-    public virtual WorkspaceStatus Status { get; set; } = null!;
-
-    [ForeignKey("WorkspaceId")]
-    [InverseProperty("WorkspaceHistories")]
-    [JsonIgnore]
-    public virtual Workspace Workspace { get; set; } = null!;
 }

@@ -22,7 +22,7 @@ namespace CoworkingApp.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("CoworkingApp.Models.CoworkingCenter", b =>
+            modelBuilder.Entity("CoworkingApp.Models.DataModels.CoworkingCenter", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -30,6 +30,11 @@ namespace CoworkingApp.Migrations
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("character varying")
+                        .HasColumnName("description");
 
                     b.Property<decimal>("Latitude")
                         .HasPrecision(9, 6)
@@ -53,7 +58,7 @@ namespace CoworkingApp.Migrations
                     b.ToTable("coworking_center");
                 });
 
-            modelBuilder.Entity("CoworkingApp.Models.Reservation", b =>
+            modelBuilder.Entity("CoworkingApp.Models.DataModels.Reservation", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -98,7 +103,7 @@ namespace CoworkingApp.Migrations
                     b.ToTable("reservation");
                 });
 
-            modelBuilder.Entity("CoworkingApp.Models.User", b =>
+            modelBuilder.Entity("CoworkingApp.Models.DataModels.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -133,7 +138,7 @@ namespace CoworkingApp.Migrations
                     b.ToTable("user");
                 });
 
-            modelBuilder.Entity("CoworkingApp.Models.UserRole", b =>
+            modelBuilder.Entity("CoworkingApp.Models.DataModels.UserRole", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -162,7 +167,7 @@ namespace CoworkingApp.Migrations
                     b.ToTable("user_role");
                 });
 
-            modelBuilder.Entity("CoworkingApp.Models.Workspace", b =>
+            modelBuilder.Entity("CoworkingApp.Models.DataModels.Workspace", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -174,6 +179,20 @@ namespace CoworkingApp.Migrations
                     b.Property<int>("CoworkingCenterId")
                         .HasColumnType("integer")
                         .HasColumnName("coworking_center_id");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("character varying")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsRemoved")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_removed");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("character varying")
+                        .HasColumnName("name");
 
                     b.Property<int>("StatusId")
                         .HasColumnType("integer")
@@ -189,7 +208,7 @@ namespace CoworkingApp.Migrations
                     b.ToTable("workspace");
                 });
 
-            modelBuilder.Entity("CoworkingApp.Models.WorkspaceHistory", b =>
+            modelBuilder.Entity("CoworkingApp.Models.DataModels.WorkspaceHistory", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -222,7 +241,7 @@ namespace CoworkingApp.Migrations
                     b.ToTable("workspace_history");
                 });
 
-            modelBuilder.Entity("CoworkingApp.Models.WorkspacePricing", b =>
+            modelBuilder.Entity("CoworkingApp.Models.DataModels.WorkspacePricing", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -255,7 +274,7 @@ namespace CoworkingApp.Migrations
                     b.ToTable("workspace_pricing");
                 });
 
-            modelBuilder.Entity("CoworkingApp.Models.WorkspaceStatus", b =>
+            modelBuilder.Entity("CoworkingApp.Models.DataModels.WorkspaceStatus", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -263,6 +282,11 @@ namespace CoworkingApp.Migrations
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("character varying")
+                        .HasColumnName("description");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -279,14 +303,14 @@ namespace CoworkingApp.Migrations
                     b.ToTable("workspace_status");
                 });
 
-            modelBuilder.Entity("CoworkingApp.Models.Reservation", b =>
+            modelBuilder.Entity("CoworkingApp.Models.DataModels.Reservation", b =>
                 {
-                    b.HasOne("CoworkingApp.Models.WorkspacePricing", "Pricing")
+                    b.HasOne("CoworkingApp.Models.DataModels.WorkspacePricing", "Pricing")
                         .WithMany("Reservations")
                         .HasForeignKey("PricingId")
                         .HasConstraintName("reservation_pricing_id_fkey");
 
-                    b.HasOne("CoworkingApp.Models.Workspace", "Workspace")
+                    b.HasOne("CoworkingApp.Models.DataModels.Workspace", "Workspace")
                         .WithMany("Reservations")
                         .HasForeignKey("WorkspaceId")
                         .IsRequired()
@@ -297,9 +321,9 @@ namespace CoworkingApp.Migrations
                     b.Navigation("Workspace");
                 });
 
-            modelBuilder.Entity("CoworkingApp.Models.User", b =>
+            modelBuilder.Entity("CoworkingApp.Models.DataModels.User", b =>
                 {
-                    b.HasOne("CoworkingApp.Models.UserRole", "Role")
+                    b.HasOne("CoworkingApp.Models.DataModels.UserRole", "Role")
                         .WithMany("Users")
                         .HasForeignKey("RoleId")
                         .IsRequired()
@@ -308,15 +332,15 @@ namespace CoworkingApp.Migrations
                     b.Navigation("Role");
                 });
 
-            modelBuilder.Entity("CoworkingApp.Models.Workspace", b =>
+            modelBuilder.Entity("CoworkingApp.Models.DataModels.Workspace", b =>
                 {
-                    b.HasOne("CoworkingApp.Models.CoworkingCenter", "CoworkingCenter")
+                    b.HasOne("CoworkingApp.Models.DataModels.CoworkingCenter", "CoworkingCenter")
                         .WithMany("Workspaces")
                         .HasForeignKey("CoworkingCenterId")
                         .IsRequired()
                         .HasConstraintName("workspace_coworking_center_id_fkey");
 
-                    b.HasOne("CoworkingApp.Models.WorkspaceStatus", "Status")
+                    b.HasOne("CoworkingApp.Models.DataModels.WorkspaceStatus", "Status")
                         .WithMany("Workspaces")
                         .HasForeignKey("StatusId")
                         .IsRequired()
@@ -327,15 +351,15 @@ namespace CoworkingApp.Migrations
                     b.Navigation("Status");
                 });
 
-            modelBuilder.Entity("CoworkingApp.Models.WorkspaceHistory", b =>
+            modelBuilder.Entity("CoworkingApp.Models.DataModels.WorkspaceHistory", b =>
                 {
-                    b.HasOne("CoworkingApp.Models.WorkspaceStatus", "Status")
+                    b.HasOne("CoworkingApp.Models.DataModels.WorkspaceStatus", "Status")
                         .WithMany("WorkspaceHistories")
                         .HasForeignKey("StatusId")
                         .IsRequired()
                         .HasConstraintName("workspace_history_status_id_fkey");
 
-                    b.HasOne("CoworkingApp.Models.Workspace", "Workspace")
+                    b.HasOne("CoworkingApp.Models.DataModels.Workspace", "Workspace")
                         .WithMany("WorkspaceHistories")
                         .HasForeignKey("WorkspaceId")
                         .IsRequired()
@@ -346,9 +370,9 @@ namespace CoworkingApp.Migrations
                     b.Navigation("Workspace");
                 });
 
-            modelBuilder.Entity("CoworkingApp.Models.WorkspacePricing", b =>
+            modelBuilder.Entity("CoworkingApp.Models.DataModels.WorkspacePricing", b =>
                 {
-                    b.HasOne("CoworkingApp.Models.Workspace", "Workspace")
+                    b.HasOne("CoworkingApp.Models.DataModels.Workspace", "Workspace")
                         .WithMany("WorkspacePricings")
                         .HasForeignKey("WorkspaceId")
                         .IsRequired()
@@ -357,17 +381,17 @@ namespace CoworkingApp.Migrations
                     b.Navigation("Workspace");
                 });
 
-            modelBuilder.Entity("CoworkingApp.Models.CoworkingCenter", b =>
+            modelBuilder.Entity("CoworkingApp.Models.DataModels.CoworkingCenter", b =>
                 {
                     b.Navigation("Workspaces");
                 });
 
-            modelBuilder.Entity("CoworkingApp.Models.UserRole", b =>
+            modelBuilder.Entity("CoworkingApp.Models.DataModels.UserRole", b =>
                 {
                     b.Navigation("Users");
                 });
 
-            modelBuilder.Entity("CoworkingApp.Models.Workspace", b =>
+            modelBuilder.Entity("CoworkingApp.Models.DataModels.Workspace", b =>
                 {
                     b.Navigation("Reservations");
 
@@ -376,12 +400,12 @@ namespace CoworkingApp.Migrations
                     b.Navigation("WorkspacePricings");
                 });
 
-            modelBuilder.Entity("CoworkingApp.Models.WorkspacePricing", b =>
+            modelBuilder.Entity("CoworkingApp.Models.DataModels.WorkspacePricing", b =>
                 {
                     b.Navigation("Reservations");
                 });
 
-            modelBuilder.Entity("CoworkingApp.Models.WorkspaceStatus", b =>
+            modelBuilder.Entity("CoworkingApp.Models.DataModels.WorkspaceStatus", b =>
                 {
                     b.Navigation("WorkspaceHistories");
 
