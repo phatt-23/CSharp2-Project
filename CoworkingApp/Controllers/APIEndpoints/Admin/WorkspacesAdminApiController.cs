@@ -11,22 +11,22 @@ namespace CoworkingApp.Controllers.APIEndpoints.Admin;
 [ApiController]
 [Route("api/admin/workspaces")]
 public class WorkspacesAdminApiController(
-   WorkspacesService workspacesService, 
+   IWorkspaceService workspaceService, 
    IMapper mapper
    ) : Controller
 {
    /// ADMIN - Creating a workspace. 
    [Authorize(Roles = "Admin")]
    [HttpPost] 
-   public async Task<IActionResult> Create([FromBody] WorkspaceCreateRequestDto request)
+   public async Task<IActionResult> CreateWorkspaceAsync([FromBody] WorkspaceCreateRequestDto request)
    {
       if (!ModelState.IsValid)
          return BadRequest(ModelState);
 
       try
       {
-         var workspace = await workspacesService.CreateAsync(request);
-         return Ok(mapper.Map<WorkspaceDetailDto>(workspace));
+         var workspace = await workspaceService.CreateWorkspaceAsync(request);
+         return Ok(mapper.Map<WorkspaceDto>(workspace));
       }
       catch (Exception e)
       {

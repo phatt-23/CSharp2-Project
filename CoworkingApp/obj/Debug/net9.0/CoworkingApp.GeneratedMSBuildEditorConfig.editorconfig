@@ -44,24 +44,24 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3MvU2hhcmVkL19WYWxpZGF0aW9uU2NyaXB0c1BhcnRpYWwuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/Views/Workspaces/Create.cshtml]
-build_metadata.AdditionalFiles.TargetPath = Vmlld3MvV29ya3NwYWNlcy9DcmVhdGUuY3NodG1s
+[/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/Views/Workspace/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvV29ya3NwYWNlL0NyZWF0ZS5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/Views/Workspaces/Detail.cshtml]
-build_metadata.AdditionalFiles.TargetPath = Vmlld3MvV29ya3NwYWNlcy9EZXRhaWwuY3NodG1s
+[/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/Views/Workspace/Detail.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvV29ya3NwYWNlL0RldGFpbC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/Views/Workspaces/Edit.cshtml]
-build_metadata.AdditionalFiles.TargetPath = Vmlld3MvV29ya3NwYWNlcy9FZGl0LmNzaHRtbA==
+[/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/Views/Workspace/Edit.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvV29ya3NwYWNlL0VkaXQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/Views/Workspaces/GetWorkspaces.cshtml]
-build_metadata.AdditionalFiles.TargetPath = Vmlld3MvV29ya3NwYWNlcy9HZXRXb3Jrc3BhY2VzLmNzaHRtbA==
+[/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/Views/Workspace/GetWorkspaces.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvV29ya3NwYWNlL0dldFdvcmtzcGFjZXMuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/Views/Workspaces/Index.cshtml]
-build_metadata.AdditionalFiles.TargetPath = Vmlld3MvV29ya3NwYWNlcy9JbmRleC5jc2h0bWw=
+[/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/Views/Workspace/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvV29ya3NwYWNlL0luZGV4LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
 [/home/phatt/RiderProjects/CoworkingApp/CoworkingApp/Views/_ViewImports.cshtml]

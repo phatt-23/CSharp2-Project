@@ -66,3 +66,12 @@ dotnet ef dbcontext scaffold \
 
 Links:
 - [[https://www.jstoolset.com/jwt]]
+
+
+## Style
+
+Services return data models. It's up to the action, depending if its user of admin, 
+it maps the served resource to admin or user DTO.
+
+
+

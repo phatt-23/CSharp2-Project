@@ -7,58 +7,48 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CoworkingApp.Services;
 
-public class CoworkingCentersService(
+public interface ICoworkingCenterService
+{
+    Task<IEnumerable<CoworkingCenter>> GetCoworkingCentersAsync(CoworkingCenterQueryRequestDto request);
+    Task<CoworkingCenter> GetCoworkingCenterByIdAsync(int coworkingCenterId);
+    Task<CoworkingCenter> CreateCoworkingCenterAsync(CoworkingCenterCreateRequestDto request);
+}
+
+public class CoworkingCenterService(
+    ICoworkingCenterRepository repository,
     CoworkingDbContext context,
     IMapper mapper 
-    )
+    ) : ICoworkingCenterService
 {
-    public async Task<(IEnumerable<CoworkingCenterDto>, int)> GetAsync(CoworkingCentersQueryDto query)
+    public async Task<IEnumerable<CoworkingCenter>> GetCoworkingCentersAsync(CoworkingCenterQueryRequestDto request)
     {
-        var coworkingCenters = context.CoworkingCenters.AsQueryable();
+        var ccs = await repository.GetCoworkingCentersAsync(new CoworkingCenterFilterOptions
+        {
+            LikeName = request.Name,
+            LatitudeLow = request.LatitudeLow,
+            LatitudeHigh = request.LatitudeHigh,
+            LongitudeLow = request.LatitudeLow,
+            LongitudeHigh = request.LongitudeHigh
+        });
 
-        if (query.Name != null)
-            coworkingCenters = coworkingCenters.Where(c => c.Name == query.Name);
-        if (query.Latitude.HasValue)
-            coworkingCenters = coworkingCenters.Where(c => c.Latitude == query.Latitude.Value);
-        if (query.Longitude.HasValue)
-            coworkingCenters = coworkingCenters.Where(c => c.Longitude == query.Longitude.Value);
-        if (query.LatitudeLow.HasValue)
-            coworkingCenters = coworkingCenters.Where(c => c.Latitude >= query.LatitudeLow.Value); 
-        if (query.LatitudeHigh.HasValue)
-            coworkingCenters = coworkingCenters.Where(c => c.Latitude <= query.LatitudeHigh.Value);
-        if (query.LongitudeLow.HasValue)
-            coworkingCenters = coworkingCenters.Where(c => c.Longitude >= query.LongitudeLow.Value);
-        if (query.LongitudeHigh.HasValue)
-            coworkingCenters = coworkingCenters.Where(c => c.Longitude <= query.LongitudeHigh.Value);
-        
-        var totalCount = await coworkingCenters.CountAsync();
-
-        coworkingCenters = coworkingCenters
-            .Skip((query.PageNumber - 1) * query.PageSize)
-            .Take(query.PageSize)
-            .Include(cc => cc.Workspaces);
-        
-        var coworkingCenterDtos = mapper.Map<IEnumerable<CoworkingCenterDto>>(coworkingCenters);
-        
-        return (coworkingCenterDtos, totalCount);
-    }
-    
-    public async Task<CoworkingCenterDto> GetByIdAsync(int id)
-    {
-        var coworkingCenter = await context.CoworkingCenters
-            .Where(cc => cc.Id == id)
-            .Include(cc => cc.Workspaces)
-            .SingleAsync();
-
-        if (coworkingCenter == null)
-            throw new NotFoundException($"Coworking center with {id} not found");
-
-        return mapper.Map<CoworkingCenterDto>(coworkingCenter);
+        return ccs;
     }
 
-    public async Task<CoworkingCenterDto> CreateAsync(CoworkingCenterCreateRequestDto request)
+    public async Task<CoworkingCenter> GetCoworkingCenterByIdAsync(int coworkingCenterId)
     {
-        // create and save to database
-        throw new NotImplementedException();
+        var ccs = await repository.GetCoworkingCentersAsync(
+            new CoworkingCenterFilterOptions { Id = coworkingCenterId });
+        
+        var cs = ccs.FirstOrDefault();
+        if (cs == null) 
+            throw new NotFoundException($"Coworking center with {coworkingCenterId} not found");
+        
+        return cs;
+    }
+
+    public async Task<CoworkingCenter> CreateCoworkingCenterAsync(CoworkingCenterCreateRequestDto request)
+    {
+        var cc = await repository.AddCoworkingCenterAsync(mapper.Map<CoworkingCenter>(request));
+        return cc;
     }
 }

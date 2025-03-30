@@ -68,11 +68,27 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "CoworkingApp", Version = "v1" }));
 builder.Services.AddOpenApi("v1");
 
-builder.Services.AddScoped<WorkspacesService>();
-builder.Services.AddScoped<WorkspaceStatusesService>();
-builder.Services.AddScoped<CoworkingCentersService>();
-builder.Services.AddScoped<ReservationsService>();
+
+
+builder.Services.AddScoped<IWorkspaceHistoryRepository, WorkspaceHistoryRepository>();
+builder.Services.AddScoped<IWorkspaceStatusRepository, WorkspaceStatusRepository>();
+
+builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
+builder.Services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
+
+builder.Services.AddScoped<IWorkspaceStatusService, WorkspaceStatusService>();
+builder.Services.AddScoped<IWorkspaceStatusRepository, WorkspaceStatusRepository>();
+
+builder.Services.AddScoped<IReservationsService, ReservationsService>();
+builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
+
+builder.Services.AddScoped<ICoworkingCenterRepository, CoworkingCenterRepository>();
+builder.Services.AddScoped<ICoworkingCenterService, CoworkingCenterService>();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IPaginationService, PaginationService>();
+
+
 
 
 var app = builder.Build();

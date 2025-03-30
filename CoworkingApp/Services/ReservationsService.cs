@@ -9,108 +9,64 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CoworkingApp.Services;
 
-public class ReservationsService(
-    CoworkingDbContext context,
-    IMapper mapper
-    ) 
+
+public interface IReservationsService
 {
-    public async Task<(IEnumerable<ReservationDto>, int)> GetAsync(ReservationsQueryDto query)
+    Task<IEnumerable<Reservation>> GetReservationsAsync(ReservationQueryRequestDto request);
+    Task<Reservation> GetReservationByIdAsync(int reservationId);
+    Task<Reservation> CreateReservationAsync(ReservationCreateRequestDto request);
+    Task<Reservation> CancelReservationAsync(int id);
+}
+
+
+public class ReservationsService(
+    IReservationRepository reservationRepository,
+    IMapper mapper
+    ) : IReservationsService
+{
+    public async Task<IEnumerable<Reservation>> GetReservationsAsync(ReservationQueryRequestDto request)
     {
-        var reservations = context.Reservations.AsQueryable();
-        
-        if (query.WorkspaceId != null)
-            reservations = reservations.Where(r => r.WorkspaceId == query.WorkspaceId);
-        if (query.StartTime != null)
-            reservations = reservations.Where(r => r.StartTime >= query.StartTime);
-        if (query.EndTime != null)
-            reservations = reservations.Where(r => r.EndTime <= query.EndTime);
-        if (query.TotalPrice != null)
-            reservations = reservations.Where(r => r.TotalPrice >= query.TotalPrice);
-        if (query.PricingId != null)
-            reservations = reservations.Where(r => r.PricingId == query.PricingId);
-        if (query.CustomerId != null)
-            reservations = reservations.Where(r => r.CustomerId == query.CustomerId);
-        if (query.PriceLow != null)
-            reservations = reservations.Where(r => r.TotalPrice >= query.PriceLow);
-        if (query.PriceHigh != null)
-            reservations = reservations.Where(r => r.TotalPrice <= query.PriceHigh);
-            
-        var totalCount = await reservations.CountAsync();
-        
-        reservations = reservations
-                .Skip((query.PageNumber - 1) * query.PageSize)
-                .Take(query.PageSize);
-        
-        var reservationDtos = mapper.Map<IEnumerable<ReservationDto>>(reservations);
-        
-        return (reservationDtos, totalCount);
+        var rs = await reservationRepository.GetReservationsAsync(new ReservationsFilterOptions
+        {
+            WorkspaceId = request.WorkspaceId,
+            CustomerId = request.CustomerId,
+            StartTime = request.StartTime,
+            EndTime = request.EndTime,
+            TotalPriceLow = request.PriceLow,
+            TotalPriceHigh = request.PriceHigh,
+            PricingId = request.PricingId,
+        });
+
+        return rs;
     }
 
-    public async Task<ReservationDto> GetByIdAsync(int id)
+    public async Task<Reservation> GetReservationByIdAsync(int reservationId)
     {
-        var reservation = await context.Reservations
-            .Where(r => r.Id == id)
-            .FirstOrDefaultAsync();
-       
-        if (reservation is null) 
-            throw new NotFoundException($"Reservation with id '{id}' not found");
-
-        return mapper.Map<ReservationDto>(reservation);
+        var rs = await reservationRepository.GetReservationsAsync(new ReservationsFilterOptions { Id = reservationId });
+        if (!rs.Any()) throw new NotFoundException($"Reservation with id '{reservationId}' not found");
+        return rs.First();
     }
 
-    public async Task<ReservationDto> CreateAsync(ReservationCreateRequestDto request)
+    public async Task<Reservation> CreateReservationAsync(ReservationCreateRequestDto request)
     {
-        if (request.StartTime < DateTime.Now || request.EndTime < DateTime.Now)
-            throw new InvalidOperationException("START and END time cannot denote time in the past."); 
-        
-        if (request.StartTime > request.EndTime)
-            throw new InvalidOperationException("START time must be before the END time");
-
-        var workspace = await context.Workspaces
-            .Where(w => w.Id == request.WorkspaceId)
-            .Include(w => w.Status)
-            .Include(w => w.WorkspacePricings)
-            .FirstOrDefaultAsync();
-
-        if (workspace == null)
-            throw new NotFoundException($"Workspace with id {request.WorkspaceId} not found");
-        
-        if (workspace.Status.Type != WorkspaceStatusType.Available)
-            throw new InvalidOperationException("Workspace is not available");
-       
-        // find the current pricing (time of reservation in range of the pricing)
-        var latestValidFrom = workspace.WorkspacePricings.Max(p => p.ValidFrom);
-            
-        var workspacePricing = workspace.WorkspacePricings
-            .Single(p => p.ValidFrom == latestValidFrom);
-       
-        if (workspacePricing == null)
-            throw new ConstraintException(
-                $"Workspace with id {request.WorkspaceId} doesn't have currently have a valid pricing.");
-
-        var totalPrice = workspacePricing.PricePerHour * (decimal)(request.EndTime - request.StartTime).TotalHours;
-        
-
-        var reservation = mapper.Map<Reservation>(request);
-        reservation.PricingId = workspacePricing.Id;
-        reservation.TotalPrice = totalPrice;
-       
-        context.Reservations.Add(reservation);
-        await context.SaveChangesAsync();
-        
-        return mapper.Map<ReservationDto>(reservation);
+        var res = await reservationRepository.AddReservationAsync(mapper.Map<Reservation>(request));
+        return res;
     }
 
-    public async Task<ReservationDto> CancelAsync(int id)
+    public async Task<Reservation> CancelReservationAsync(int reservationId)
     {
-        var reservation = await context.Reservations.FindAsync(id);
-        if (reservation == null)
-            throw new NotFoundException($"Reservation with id '{id}' not found");
+        var rs = await reservationRepository.GetReservationsAsync(
+            new ReservationsFilterOptions { Id = reservationId });
         
-        reservation.IsCancelled = true; 
-        context.Reservations.Update(reservation); 
-        await context.SaveChangesAsync();
-        
-        return mapper.Map<ReservationDto>(reservation);
+        var res = rs.FirstOrDefault();
+        if (res == null) 
+            throw new NotFoundException($"Reservation with id {reservationId} not found");
+
+        if (res.StartTime >= DateTime.Now)
+            throw new InvalidOperationException("Cannot cancel reservation that is already taking place");
+       
+        res.IsCancelled = true;
+        return await reservationRepository.UpdateReservationAsync(res);
     }
 }
+

@@ -1,5 +1,6 @@
 using AutoMapper;
 using CoworkingApp.Models.DataModels;
+using CoworkingApp.Models.DTOModels.Auth;
 using CoworkingApp.Models.DTOModels.CoworkingCenters;
 using CoworkingApp.Models.DTOModels.Reservation;
 using CoworkingApp.Models.DTOModels.User;

@@ -15,6 +15,14 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace CoworkingApp.Services;
 
+
+public interface IAuthService
+{
+    Task<UserDto> RegisterAsync(UserRegisterRequestDto request);
+    Task<TokenResponseDto> LoginAsync(UserLoginRequestDto request);
+    Task<TokenResponseDto> RefreshTokensAsync(string userId, string refreshToken);
+}
+
 public class AuthService(
     CoworkingDbContext context,
     IMapper mapper,

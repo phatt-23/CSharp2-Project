@@ -4,6 +4,7 @@ using CoworkingApp.Models.DataModels;
 using CoworkingApp.Models.DTOModels.CoworkingCenters;
 using CoworkingApp.Models.DTOModels.Workspace;
 using CoworkingApp.Models.DTOModels.WorkspaceStatus;
+using CoworkingApp.Models.Exceptions;
 using CoworkingApp.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -11,20 +12,19 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 namespace CoworkingApp.Controllers.MVC;
 
 /// For the end user in the browser
-public class WorkspacesController(
-    WorkspacesService workspacesService,
-    CoworkingCentersService coworkingCentersService,
-    WorkspaceStatusesService workspaceStatusesService
+public class WorkspaceController(
+    IWorkspaceService workspaceService,
+    ICoworkingCenterService coworkingCenterService,
+    IWorkspaceStatusService workspaceStatusService
     ) : Controller
 {
     
     /// Workspace listing
     /// GET workspaces/
     [HttpGet]
-    public async Task<IActionResult> Index(WorkspacesQueryDto queryDto)
+    public async Task<IActionResult> Index(WorkspaceQueryRequestDto request)
     {
-        var (workspaces, _) = await workspacesService.GetAsync(queryDto);
-        
+        var workspaces = await workspaceService.GetWorkspacesAsync(request);
         return View(workspaces);
     }
 
@@ -35,13 +35,15 @@ public class WorkspacesController(
     public async Task<IActionResult> Detail(int id)
     {
         // total count should always be 1
-        var workspace = await workspacesService.GetByIdAsync(id);
-        if (workspace is null)
+        try
         {
-            return NotFound($"The workspace with id '{id}' was not found.");
+            var workspace = await workspaceService.GetWorkspaceByIdAsync(id);
+            return View(workspace);
         }
-
-        return View(workspace);
+        catch (Exception ex)
+        {
+            return NotFound(ex.Message);
+        }
     }
 
 
@@ -50,8 +52,8 @@ public class WorkspacesController(
     [HttpGet]
     public async Task<IActionResult> Create()
     {
-        var (coworkingCenters, _) = await coworkingCentersService.GetAsync(new CoworkingCentersQueryDto());
-        var (workspaceStatuses, _) = await workspaceStatusesService.GetAsync(new WorkspaceStatusQueryDto());
+        var coworkingCenters = await coworkingCenterService.GetCoworkingCentersAsync(new CoworkingCenterQueryRequestDto());
+        var workspaceStatuses = await workspaceStatusService.GetWorkspaceStatusesAsync(new WorkspaceStatusQueryRequestDto());
         
         ViewBag.CoworkingCenters = new SelectList(coworkingCenters, "Id", "Name");
         ViewBag.Statuses = new SelectList(workspaceStatuses, "Id", "Name");
@@ -67,8 +69,8 @@ public class WorkspacesController(
     {
         if (!ModelState.IsValid)
         {
-            var (coworkingCenters, _) = await coworkingCentersService.GetAsync(new CoworkingCentersQueryDto());
-            var (workspaceStatuses, _) = await workspaceStatusesService.GetAsync(new WorkspaceStatusQueryDto());
+            var coworkingCenters = await coworkingCenterService.GetCoworkingCentersAsync(new CoworkingCenterQueryRequestDto());
+            var workspaceStatuses = await workspaceStatusService.GetWorkspaceStatusesAsync(new WorkspaceStatusQueryRequestDto());
             
             ViewBag.CoworkingCenters = new SelectList(coworkingCenters, "Id", "Name");
             ViewBag.Statuses = new SelectList(workspaceStatuses, "Id", "Name");
@@ -76,7 +78,7 @@ public class WorkspacesController(
             return View(workspaceCreateRequestDto);
         }
 
-        var createdWorkspace = await workspacesService.CreateAsync(workspaceCreateRequestDto);
+        var createdWorkspace = await workspaceService.CreateWorkspaceAsync(workspaceCreateRequestDto);
         return RedirectToAction("Detail", new { id = createdWorkspace.Id });
     }
 
@@ -85,7 +87,7 @@ public class WorkspacesController(
     [HttpGet] 
     public async Task<IActionResult> Edit(int id)
     {
-        var workspace = await workspacesService.GetByIdAsync(id);
+        var workspace = await workspaceService.GetWorkspaceByIdAsync(id);
         return View(workspace);
     }
 
@@ -93,11 +95,15 @@ public class WorkspacesController(
     [HttpDelete]
     public async Task<IActionResult> Remove(int id)
     {
-        var workspace = await workspacesService.RemoveByIdAsync(id);
-        if (workspace is null)
-            return NotFound($"The workspace with id '{id}' was not found.");
-
-        return RedirectToAction("Index");
+        try
+        {
+            _ = await workspaceService.RemoveWorkspaceByIdAsync(id);
+            return RedirectToAction("Index");
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
     }
     
     

@@ -1,5 +1,6 @@
 using AutoMapper;
 using CoworkingApp.Models.DTOModels.CoworkingCenters;
+using CoworkingApp.Models.Exceptions;
 using CoworkingApp.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,21 +9,28 @@ namespace CoworkingApp.Controllers.APIEndpoints.Public;
 [ApiController]
 [Route("/api/coworking-centers")]
 public class CoworkingCentersApiController(
-    CoworkingCentersService coworkingCentersService
+    ICoworkingCenterService coworkingCenterService,
+    IPaginationService paginationService,
+    IMapper mapper
     ) : Controller
 {
     /// PUBLIC - Get filtered coworking centers.
     [HttpGet]
-    public async Task<ActionResult<ICollection<CoworkingCenterDto>>> Get([FromQuery] CoworkingCentersQueryDto query)
+    public async Task<ActionResult<ICollection<CoworkingCenterDto>>> Get([FromQuery] CoworkingCenterQueryRequestDto request)
     {
-        var (centerDtos, totalCount) = await coworkingCentersService.GetAsync(query);
+        var centers = await coworkingCenterService.GetCoworkingCentersAsync(request);
 
+        var totalCount = centers.Count();
+        
+        var paginatedCenters = paginationService.Paginate(centers, request.PageNumber, request.PageSize);
+        var centerDtos = mapper.Map<IEnumerable<CoworkingCenterDto>>(paginatedCenters);
+        
         var response = new CoworkingCentersResponseDto
         {
             Centers = centerDtos,
             TotalCount = totalCount,
-            PageNumber = query.PageNumber,
-            PageSize = query.PageSize,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
         };
         
         return Ok(response);
@@ -30,20 +38,25 @@ public class CoworkingCentersApiController(
 
     /// PUBLIC - Get a coworking center by id.
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<CoworkingCenterDto?>> GetById(int id)
+    public async Task<ActionResult<CoworkingCenterDto>> GetById(int id)
     {
-        var center = await coworkingCentersService.GetByIdAsync(id);
-        if (center == null)
-            return NotFound($"Center with id '{id}' not found");
-
-        var response = new CoworkingCenterDto
+        try
         {
-            Name = center.Name,
-            Description = center.Description,
-            Latitude = center.Latitude,
-            Longitude = center.Longitude
-        };
-        
-        return Ok(response);
+            var center = await coworkingCenterService.GetCoworkingCenterByIdAsync(id);
+            
+            var response = new CoworkingCenterDto
+            {
+                Name = center.Name,
+                Description = center.Description,
+                Latitude = center.Latitude,
+                Longitude = center.Longitude
+            };
+            
+            return Ok(response);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
     }
 }

@@ -1,94 +1,130 @@
+using AutoMapper;
 using CoworkingApp.Data;
 using CoworkingApp.Models.DataModels;
 using CoworkingApp.Models.DTOModels.Workspace;
+using CoworkingApp.Models.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace CoworkingApp.Services;
 
-public class WorkspacesService(CoworkingDbContext context)
+public interface IWorkspaceService
 {
-    /// Returns the filtered and paginated workspaces
-    /// and total count mathing the filtering (before pagination).
-    public async Task<(IEnumerable<Workspace>, int)> GetAsync(WorkspacesQueryDto query)
+    Task<IEnumerable<Workspace>> GetWorkspacesForAdminAsync(AdminWorkspaceQueryRequestDto request);
+    Task<IEnumerable<Workspace>> GetWorkspacesAsync(WorkspaceQueryRequestDto request);
+
+    Task<Workspace?> GetWorkspaceByIdAsync(int id);
+    Task<IEnumerable<WorkspaceHistory>> GetWorkspaceHistoryAsync(int id);
+    Task<Workspace> CreateWorkspaceAsync(WorkspaceCreateRequestDto request);
+    Task<bool> UpdateWorkspaceStatusAsync(int workspaceId, WorkspaceStatusType statusType);
+    Task<Workspace?> RemoveWorkspaceByIdAsync(int workspaceId);
+}
+
+
+public class WorkspaceService(
+    IWorkspaceRepository workspaceRepository,
+    IWorkspaceHistoryRepository historyRepository,
+    IWorkspaceStatusRepository statusRepository,
+    CoworkingDbContext context,
+    IMapper mapper
+    ) : IWorkspaceService
+{
+    public Task<IEnumerable<Workspace>> GetWorkspacesForAdminAsync(AdminWorkspaceQueryRequestDto request)
     {
-        var workspaces = context.Workspaces
-            .AsQueryable();
+        var workspaces = workspaceRepository.GetWorkspacesAsync(new WorkspaceFilterOptions()
+        {
+            LikeName = request.Name,
+            StatusId = request.StatusId,
+            StatusType = request.StatusType,
+            IncludeStatus = true,
+            IncludeCoworkingCenter = true,
+        });
+        
+        return workspaces;
+    }
+    
+    public Task<IEnumerable<Workspace>> GetWorkspacesAsync(WorkspaceQueryRequestDto request)
+    {
+        var workspaces = workspaceRepository.GetWorkspacesAsync(new WorkspaceFilterOptions()
+        {
+            LikeName = request.Name,
+            IncludeStatus = true,
+            IncludeCoworkingCenter = true,
+        });
 
-        if (!string.IsNullOrWhiteSpace(query.Name))
-            workspaces = workspaces.Where(w => w.Name == query.Name);
-        if (query.StatusId.HasValue)
-            workspaces = workspaces.Where(w => w.StatusId == query.StatusId);
-
-        var totalCount = await workspaces.CountAsync();
-
-        workspaces = workspaces
-            .Skip((query.PageNumber - 1) * query.PageSize)
-            .Take(query.PageSize)
-            .Include(w => w.CoworkingCenter)
-            .Include(w => w.Status);
-
-        return (workspaces, totalCount);
+        return workspaces;
     }
 
-    public async Task<Workspace?> GetByIdAsync(int id)
+    public async Task<Workspace> GetWorkspaceByIdAsync(int id)
     {
-        return await context.Workspaces
-            .Where(w => w.Id == id)
-            .Include(w => w.CoworkingCenter)
-            .Include(w => w.Status)
-            .SingleOrDefaultAsync();
+        var workspaces = await workspaceRepository.GetWorkspacesAsync(new WorkspaceFilterOptions
+        {
+            Id = id,
+            IncludeStatus = true,
+            IncludeCoworkingCenter = true,
+        });
+
+        var w = workspaces.SingleOrDefault();
+        if (w == null) 
+            throw new NotFoundException("Workspace with id '" + id + "' not found or multiple exists.");
+        
+        return w;
     }
 
-    public IEnumerable<WorkspaceHistory> GetHistoriesOfWorkspace(int id)
-        => context.WorkspaceHistories
-            .Where(w => w.Id == id);
-
-    public async Task<Workspace> CreateAsync(WorkspaceCreateRequestDto request)
+    public async Task<IEnumerable<WorkspaceHistory>> GetWorkspaceHistoryAsync(int workspaceId)
     {
-        var workspace = new Workspace
+        if (!await workspaceRepository.WorkspacesExistAsync(new WorkspaceFilterOptions { Id = workspaceId }))
+            throw new InvalidOperationException($"Workspace with id '{workspaceId}' doesn't exist");
+
+        var histories = await historyRepository.GetHistoriesAsync(new WorkspaceHistoryFilterOptions
+        {
+            WorkspaceId = workspaceId,
+        });
+        
+        return histories;
+    }
+
+    public async Task<Workspace> CreateWorkspaceAsync(WorkspaceCreateRequestDto request)
+    {
+        var workspace = await workspaceRepository.AddWorkspaceAsync(new Workspace
         {
             Name = request.Name,
             Description = request.Description,
             StatusId = request.StatusId,
             CoworkingCenterId = request.CoworkingCenterId,
-        };
+        });
         
-        var addedWorkspace = await context.Workspaces.AddAsync(workspace);
-        await context.SaveChangesAsync();
-        
-        return addedWorkspace.Entity;
+        return workspace;
     }
 
-    public async Task<bool> UpdateStatusAsync(int workspaceId, int statusId)
+    public async Task<bool> UpdateWorkspaceStatusAsync(int workspaceId, WorkspaceStatusType statusType)
     {
-        var workspace = await context.Workspaces.FindAsync(workspaceId);
-        if (workspace == null)
-            return false;
-
-        if (!context.WorkspaceStatuses.Any(ws => ws.Id == statusId))
-            return false;
+        var workspaces = await workspaceRepository.GetWorkspacesAsync(
+            new WorkspaceFilterOptions { Id = workspaceId });
         
-        workspace.StatusId = statusId;
-        context.Update(workspace);
+        var workspace = workspaces.Single();
 
-        var history = new WorkspaceHistory
+        var statuses = await statusRepository.GetWorkspaceStatusAsync(
+            new WorkspaceStatusFilterOptions { LikeName = statusType.ToString() });
+        var status = statuses.Single();
+       
+        workspace.StatusId = status.Id;
+
+        await workspaceRepository.UpdateWorkspaceAsync(workspace);
+        await historyRepository.AddWorkspaceHistoryAsync(new WorkspaceHistory
         {
             WorkspaceId = workspaceId,
-            StatusId = statusId,
-        };
-
-        context.WorkspaceHistories.Add(history);
+            StatusId = status.Id,
+        });
         
-        await context.SaveChangesAsync();
         return true;
     }
 
-    public async Task<Workspace?> RemoveByIdAsync(int id)
+    public async Task<Workspace> RemoveWorkspaceByIdAsync(int workspaceId)
     {
-        var workspace = await context.Workspaces.FindAsync(id);
-        if (workspace is null)
-            return null;
-
-        return context.Workspaces.Remove(workspace).Entity;
+        var w = (await workspaceRepository.GetWorkspacesAsync(new WorkspaceFilterOptions { Id = workspaceId })).FirstOrDefault();
+        if (w == null)
+            throw new NotFoundException("The workspace with id '" + workspaceId + "' was not found.");
+        
+        return await workspaceRepository.RemoveWorkspaceAsync(w);
     }
 }

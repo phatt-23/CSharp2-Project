@@ -142,5 +142,4 @@ public class AuthApiController(
         var email = User.Claims.First(c => c.Type == ClaimTypes.Email).Value;
         return Ok($"Hi, {email}, you are admin!");
     }
-
 }

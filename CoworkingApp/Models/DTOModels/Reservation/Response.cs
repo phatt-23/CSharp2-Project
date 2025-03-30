@@ -1,6 +1,8 @@
 namespace CoworkingApp.Models.DTOModels.Reservation;
 
+// Response DTOs
+
 public class ReservationsResponseDto : PaginationResponseDto
 {
-    public required IEnumerable<ReservationDto> Reservation { get; set; }
+    public required IEnumerable<ReservationDto> Reservations { get; set; }
 }

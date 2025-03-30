@@ -10,7 +10,8 @@ namespace CoworkingApp.Controllers.APIEndpoints.Admin;
 [ApiController]
 [Route("/api/admin/coworking-centers")]
 public class CoworkingCentersAdminApiController(
-    CoworkingCentersService coworkingCentersService
+    ICoworkingCenterService coworkingCenterService,
+    IMapper mapper
     ) : Controller
 {
     /// ADMIN - Create a new coworking center.
@@ -20,14 +21,13 @@ public class CoworkingCentersAdminApiController(
     {
         try
         {
-            var coworkingCenterDto = await coworkingCentersService.CreateAsync(request);
-            return coworkingCenterDto;
+            var coworkingCenter = await coworkingCenterService.CreateCoworkingCenterAsync(request);
+            var coworkingCenterDto = mapper.Map<CoworkingCenterDto>(coworkingCenter);
+            return Ok(coworkingCenterDto);
         }
         catch (Exception e)
         {
             return BadRequest(e.Message);
         }
     }
-    
-    
 }

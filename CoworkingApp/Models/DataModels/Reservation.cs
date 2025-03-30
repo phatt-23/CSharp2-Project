@@ -17,7 +17,7 @@ public partial class Reservation
     public DateTime StartTime { get; set; }
 
     [Column("end_time", TypeName = "timestamp without time zone")]
-    public DateTime? EndTime { get; set; }
+    public DateTime EndTime { get; set; }
 
     [Column("total_price", TypeName = "money")]
     public decimal? TotalPrice { get; set; }

@@ -6,43 +6,59 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CoworkingApp.Controllers.APIEndpoints.Public;
 
+internal interface IReservationsApi
+{
+    Task<IActionResult> GetResevationsAsync([FromQuery] ReservationQueryRequestDto request);
+    Task<IActionResult> GetReservationByIdAsync(int id);
+    Task<IActionResult> CreateReservationAsync([FromBody] ReservationCreateRequestDto request);
+    Task<IActionResult> CancelReservationAsync(int id);
+}
+
+
 [ApiController]
 [Route("api/reservations")]
 public class ReservationsApiController(
-    ReservationsService reservationsService
-    ) : Controller
+    IReservationsService reservationsService,
+    IPaginationService paginationService,
+    IMapper mapper
+    ) : Controller, IReservationsApi
 {
     [HttpGet]
-    public async Task<IActionResult> GetAsync([FromQuery] ReservationsQueryDto query)
+    public async Task<IActionResult> GetResevationsAsync([FromQuery] ReservationQueryRequestDto request)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
         
-        if (query.PageNumber < 1 || query.PageSize < 1)
+        if (request.PageNumber < 1 || request.PageSize < 1)
             return BadRequest("PageNumber and PageSize must be greater than or equal to 1");
         
-        var (reservationDtos, totalCount) = await reservationsService.GetAsync(query);
-
-        if (totalCount == 0)
+        var reservations = await reservationsService.GetReservationsAsync(request);
+        if (!reservations.Any())
             return NoContent();
         
+        var totalCount = reservations.Count();
+       
+        var paginatedResevations = paginationService.Paginate(reservations, request.PageNumber, request.PageSize);
+        var reservationDtos = mapper.Map<IEnumerable<ReservationDto>>(paginatedResevations);
+           
         var response = new ReservationsResponseDto
         {
-            PageNumber = query.PageNumber,
-            PageSize = query.PageSize,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
             TotalCount = totalCount, 
-            Reservation = reservationDtos
+            Reservations = reservationDtos
         };
         
         return Ok(response);
     }
 
     [HttpGet("{id:int}")]
-    public async Task<IActionResult> GetByIdAsync(int id)
+    public async Task<IActionResult> GetReservationByIdAsync(int id)
     {
         try
         {
-            var reservationDto = await reservationsService.GetByIdAsync(id);
+            var reservation = await reservationsService.GetReservationByIdAsync(id);
+            var reservationDto = mapper.Map<ReservationDto>(reservation);
             return Ok(reservationDto);
         }
         catch (NotFoundException e)
@@ -52,34 +68,36 @@ public class ReservationsApiController(
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateAsync([FromBody] ReservationCreateRequestDto request)
+    public async Task<IActionResult> CreateReservationAsync([FromBody] ReservationCreateRequestDto request)
     {
         try
         {
-            var reservationDto = await reservationsService.CreateAsync(request);
+            var reservation = await reservationsService.CreateReservationAsync(request);
+            var reservationDto = mapper.Map<ReservationDto>(reservation);
             return Ok(reservationDto);
         }
-        catch (NotFoundException e)
+        catch (NotFoundException ex)
         {
-            return NotFound(e.Message);
+            return NotFound(ex.Message);
         }
-        catch (InvalidOperationException e)
+        catch (InvalidOperationException ex)
         {
-            return BadRequest(e.Message);
+            return BadRequest(ex.Message);
         }
     }
 
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Cancel(int id)
+    public async Task<IActionResult> CancelReservationAsync(int id)
     {
         try
         {
-            var reservationDto = await reservationsService.CancelAsync(id);
+            var reservation = await reservationsService.CancelReservationAsync(id);
+            var reservationDto = mapper.Map<ReservationDto>(reservation);
             return Ok(reservationDto);
         }
-        catch (NotFoundException e)
+        catch (NotFoundException ex)
         {
-            return NotFound(e.Message);
+            return NotFound(ex.Message);
         }
     }
 

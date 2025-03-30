@@ -8,19 +8,20 @@ namespace CoworkingApp.Controllers.APIEndpoints.Public;
 [ApiController]
 [Route("/api/workspace-statuses")]
 public class WorkspaceStatusesApiController(
-    WorkspaceStatusesService workspaceStatusesService,
+    IWorkspaceStatusService workspaceStatusService,
+    IPaginationService paginationService,
     IMapper mapper 
     ) : Controller
 {
     [HttpGet]
-    public async Task<ActionResult<WorkspaceStatusesResponseDto>> GetAsync([FromQuery] WorkspaceStatusQueryDto query)
+    public async Task<ActionResult<WorkspaceStatusesResponseDto>> GetAsync([FromQuery] WorkspaceStatusQueryRequestDto request)
     {
-        var (statuses, totalCount) = await workspaceStatusesService.GetAsync(query);
+        var statuses = await workspaceStatusService.GetWorkspaceStatusesAsync(request);
 
-        var response = new WorkspaceStatusesResponseDto()
+        var response = new WorkspaceStatusesResponseDto
         {
-            TotalCount = totalCount,
-            WorkspaceStatuses = statuses.Select(mapper.Map<WorkspaceStatusDto>).ToList()
+            TotalCount = statuses.Count(),
+            WorkspaceStatuses = mapper.Map<IEnumerable<WorkspaceStatusDto>>(statuses)
         };
         
         return Ok(response);
@@ -29,10 +30,15 @@ public class WorkspaceStatusesApiController(
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetByIdAsync(int id)
     {
-        var status = await workspaceStatusesService.GetByIdAsync(id);
-        if (status is null)
-            return NotFound($"Status with id '{id}' not found");
-        
-        return Ok(mapper.Map<WorkspaceStatusDto>(status));
+        try
+        {
+            var status = await workspaceStatusService.GetWorkspaceStatusByIdAsync(id);
+            var statusDto = mapper.Map<WorkspaceStatusDto>(status);
+            return Ok(statusDto);
+        }
+        catch (Exception ex)
+        {
+            return NotFound(ex.Message);
+        }
     }
 }

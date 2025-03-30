@@ -24,11 +24,4 @@ public partial class WorkspacePricing
 
     [Column("valid_until", TypeName = "timestamp without time zone")]
     public DateTime? ValidUntil { get; set; }
-
-    [InverseProperty("Pricing")]
-    public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
-
-    [ForeignKey("WorkspaceId")]
-    [InverseProperty("WorkspacePricings")]
-    public virtual Workspace Workspace { get; set; } = null!;
 }
