@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CoworkingApp.Controllers.APIEndpoints.Public;
 
 [ApiController]
-[Route("/api/[controller]")]
+[Route("/api/auth")]
 public class AuthApiController(
     IAuthService authService,
     IConfiguration configuration
@@ -37,9 +37,10 @@ public class AuthApiController(
         {
             var tokenResponseDto = await authService.LoginAsync(request);
 
-            StoreCookies(tokenResponseDto);
+            StoreCookies(tokenResponseDto); // For web users, storing in cookies.
             
-            return Ok(new { message = "Login successful"});
+            return Ok(tokenResponseDto); // For other users, handle manually.
+            // return Ok(new { message = "Login successful"});
         }
         catch (NotFoundException ex)
         {
@@ -71,29 +72,24 @@ public class AuthApiController(
     }
 
     [HttpPost("refresh-tokens")]
-    public async Task<ActionResult<TokenResponseDto>> RefreshTokensAsync()
+    public async Task<ActionResult<TokenResponseDto>> RefreshTokensAsync([FromBody] RefreshTokenRequestDto request)
     {
         try
         {
-            var refreshToken = Request.Cookies["refreshToken"];
+            var refreshToken =  Request.Cookies["refreshToken"] ?? request.RefreshToken;
 
-            if (refreshToken == null)
-                return Unauthorized(new { message = "Can't refresh token (No refresh token found or is expired)" });
+            if (string.IsNullOrEmpty(refreshToken))
+                return Unauthorized(new { message = "No refresh token found or is expired" });
 
             // TODO: Change the user ID to be a uuid string
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+
+            var tokenResponseDto = await authService.RefreshTokensAsync(userId, refreshToken);
+    
+            StoreCookies(tokenResponseDto); // For web users, storing token in cookies.
             
-            var tokenResponseDto = await authService.RefreshTokensAsync(
-                new RefreshTokenRequestDto()
-                {
-                    UserId = userId, 
-                    RefreshToken = refreshToken
-                });
-           
-            StoreCookies(tokenResponseDto);
-            
-            // return Ok(tokenResponseDto);
-            return Ok(new { message = "Refresh successful" });
+            return Ok(tokenResponseDto); // For other users, they handle it themselves.
+            // return Ok(new { message = "Refresh successful" });
         }
         catch (NotFoundException ex)
         {

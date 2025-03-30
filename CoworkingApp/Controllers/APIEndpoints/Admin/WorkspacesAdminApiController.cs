@@ -4,6 +4,7 @@ using CoworkingApp.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Npgsql;
 
 namespace CoworkingApp.Controllers.APIEndpoints.Admin;
 
@@ -22,8 +23,15 @@ public class WorkspacesAdminApiController(
       if (!ModelState.IsValid)
          return BadRequest(ModelState);
 
-      var workspace = await workspacesService.CreateAsync(request);
-      return Ok(mapper.Map<WorkspaceDetailDto>(workspace));
+      try
+      {
+         var workspace = await workspacesService.CreateAsync(request);
+         return Ok(mapper.Map<WorkspaceDetailDto>(workspace));
+      }
+      catch (Exception e)
+      {
+         return BadRequest(e.Message);
+      }
    }
    
    

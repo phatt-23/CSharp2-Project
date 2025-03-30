@@ -57,9 +57,9 @@ public class AuthService(
         return await CreateTokenResponseAsync(user);
     }
 
-    public async Task<TokenResponseDto> RefreshTokensAsync(RefreshTokenRequestDto request)
+    public async Task<TokenResponseDto> RefreshTokensAsync(string userId, string refreshToken)
     {
-        var user = await ValidateRefreshToken(request.UserId, request.RefreshToken);
+        var user = await ValidateRefreshToken(userId, refreshToken);
         return await CreateTokenResponseAsync(user);
     }
 
@@ -105,17 +105,20 @@ public class AuthService(
         return refreshToken;
     }
 
-    private async Task<User> ValidateRefreshToken(int userId, string refreshToken)
+    private async Task<User> ValidateRefreshToken(string userId, string refreshToken)
     {
+        // TODO: Remove this, use UUID instead of int
+        var dbUserId = int.Parse(userId);
+        
         var user = await context.Users
             .Include(u => u.Role)
-            .SingleOrDefaultAsync(u => u.Id == userId);
+            .SingleOrDefaultAsync(u => u.Id == dbUserId);
         
         if (user == null)
             throw new NotFoundException($"User with id '{userId}' not exist");
 
         if (user.RefreshToken != refreshToken)
-            throw new AuthenticationFailureException("Referesh token does not match");
+            throw new AuthenticationFailureException("Refresh token does not match");
         
         if (user.RefreshTokenExpiry < DateTime.Now)
             throw new AuthenticationFailureException("Refresh token expired");

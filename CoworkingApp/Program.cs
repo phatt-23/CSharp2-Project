@@ -11,8 +11,10 @@ using Scalar.AspNetCore;
     
 
 
+/////////////////////////////////////////////////////////////////////////////
 // HERE IS THE CONFIGURATION OF THE APPLICATION (order doesnt matter)
 // Add services to the container.
+/////////////////////////////////////////////////////////////////////////////
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,9 +50,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             OnMessageReceived = (context) =>
             {
                 // Extract JWT token from cookie if Authorization header is not set
-                var token = context.Request.Cookies["jwt"];
-                if (!string.IsNullOrEmpty(token))
-                    context.Token = token;
+                var accessTokenFromCookie = context.Request.Cookies["jwt"];
+                
+                // If the cookie was found, then use this cookie
+                // if not then use Authorization header with the bearer token
+                // (this is done automatically btw, it's the standard of JWT)
+                if (!string.IsNullOrEmpty(accessTokenFromCookie))
+                    context.Token = accessTokenFromCookie;
                 
                 return Task.CompletedTask;
             }
@@ -58,7 +64,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c => c.SwaggerDoc("v1", new OpenApiInfo { Title = "CoworkingApp", Version = "v1" }));
+builder.Services.AddSwaggerGen(c => 
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "CoworkingApp", Version = "v1" }));
 builder.Services.AddOpenApi("v1");
 
 builder.Services.AddScoped<WorkspacesService>();
@@ -68,20 +75,21 @@ builder.Services.AddScoped<ReservationsService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 
-// builder.Services.AddScoped<>
-
 var app = builder.Build();
 
-// for postgresdb datetime compatibility with timestamp
+
+// For PostgresDB timestamp to compatible with C# datetime
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 
-// HERE IS THE REQUEST HANDLING PIPELINE AKA MIDDLEWARES
+//////////////////////////////////////////////////////////////////////////
+// HERE IS THE REQUEST HANDLING PIPELINE (AKA MIDDLEWARES)
 // Manipulates the request coming from the user or returning to the user.
 // Request go through each middleware from top to bottom.
-
 // Configure the HTTP request pipeline.
+//////////////////////////////////////////////////////////////////////////
 
+// In the development profile, use the Swagger and Scalar for API testing.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -93,8 +101,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.MapScalarApiReference();
 }
-
-if (!app.Environment.IsDevelopment())
+else
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();

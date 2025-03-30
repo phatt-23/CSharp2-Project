@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CoworkingApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+49c53ff0c408d287c55c14ad1fb8d4dff8ada844")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ea792206f632180737f373cc5bb5c7d7c0d26317")]
 [assembly: System.Reflection.AssemblyProductAttribute("CoworkingApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CoworkingApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
