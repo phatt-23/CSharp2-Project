@@ -19,7 +19,7 @@ public interface IAdminReservationApi
 // | `DELETE` | `/api/admin/reservations/{id}` | Force cancel a reservation. |
 
 [ApiController]
-[Route("api/admin/reservations")]
+[Route("api/admin/reservation")]
 public class AdminReservationApiController(
     IReservationService reservationService,
     IMapper mapper
@@ -78,14 +78,12 @@ public class AdminReservationApiController(
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<AdminReservationDto>> CancelReservationAsync(int id)
     {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
         try
         {
-            if (!ModelState.IsValid) 
-                return BadRequest(ModelState);
-            
             var updatedReservation = await reservationService
                 .UpdateReservationAsync(id, new ReservationUpdateRequestDto { IsCancelled = true });
-            
+
             var updatedReservationDto = mapper.Map<AdminReservationDto>(updatedReservation);
             return Ok(updatedReservationDto);
         }

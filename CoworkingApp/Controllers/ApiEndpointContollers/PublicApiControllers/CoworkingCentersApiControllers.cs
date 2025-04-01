@@ -14,7 +14,7 @@ public interface ICoworkingCentersApi
 
 
 [ApiController]
-[Route("/api/coworking-centers")]
+[Route("/api/coworking-center")]
 public class CoworkingCentersApiController(
     ICoworkingCenterService coworkingCenterService,
     IPaginationService paginationService,

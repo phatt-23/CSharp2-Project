@@ -36,7 +36,7 @@ public class AdminWorkspacePricingDto : WorkspacePricingDto
 // Request DTOs
 //////////////////////////////////////////
 
-public class PricingQueryRequestDto
+public class WorkspacePricingQueryRequestDto
 {
     public int? WorkspaceId { get; set; }
     public RangeFilter<decimal> PricePerHour { get; set; } = new();
@@ -44,4 +44,13 @@ public class PricingQueryRequestDto
     public DateTime? ValidUntil { get; set; }
     public bool IncludeReservations { get; set; } = false;
     public bool IncludeWorkspace { get; set; } = false;
+}
+
+
+public class WorkspacePricingCreateRequestDto
+{
+    public int WorkspaceId { get; set; }
+    public decimal PricePerHour { get; set; }
+    public DateTime? ValidFrom { get; set; }
+    public DateTime? ValidUntil { get; set; }
 }

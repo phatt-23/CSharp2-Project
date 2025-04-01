@@ -20,7 +20,7 @@ public interface IAdminWorkspaceApi
 
 
 [ApiController]
-[Route("api/admin/workspaces")]
+[Route("api/admin/workspace")]
 public class AdminWorkspaceApiController(
     IWorkspaceService workspaceService, 
     IMapper mapper

@@ -18,7 +18,7 @@ internal interface IReservationsApi
 
 
 [ApiController]
-[Route("api/reservations")]
+[Route("api/reservation")]
 public class ReservationsApiController(
     IReservationService reservationService,
     IPaginationService paginationService,

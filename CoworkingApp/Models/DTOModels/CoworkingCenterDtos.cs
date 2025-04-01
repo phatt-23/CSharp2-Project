@@ -47,6 +47,15 @@ public class CoworkingCenterCreateRequestDto
     public decimal Longitude { get; set; }
 }
 
+[AdminDto]
+public class CoworkingCenterUpdateRequestDto
+{
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
+}
+
 /////////////////////////////////////////////////////////////////////////////////
 // Response DTOs
 /////////////////////////////////////////////////////////////////////////////////

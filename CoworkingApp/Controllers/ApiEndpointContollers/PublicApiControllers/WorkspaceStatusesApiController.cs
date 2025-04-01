@@ -13,7 +13,7 @@ public interface IWorkspaceStatusesApi
 
 
 [ApiController]
-[Route("/api/workspace-statuses")]
+[Route("/api/workspace-status")]
 public class WorkspaceStatusesApiController(
     IWorkspaceStatusService workspaceStatusService,
     IMapper mapper 

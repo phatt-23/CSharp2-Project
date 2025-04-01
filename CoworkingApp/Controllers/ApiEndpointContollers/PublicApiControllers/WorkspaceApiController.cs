@@ -16,7 +16,7 @@ internal interface IWorkspaceApi
 
 
 [ApiController]
-[Route("/api/workspaces")]
+[Route("/api/workspace")]
 public class WorkspaceApiController(
     IWorkspaceService workspacesService,
     IPaginationService paginationService,

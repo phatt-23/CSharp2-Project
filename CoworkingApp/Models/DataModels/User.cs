@@ -32,11 +32,4 @@ public partial class User
     
     [Column("refresh_token_expiry", TypeName = "timestamp without time zone")]
     public DateTime? RefreshTokenExpiry { get; set; }
-    
-    [InverseProperty("Customer")]
-    public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
-
-    [ForeignKey("RoleId")]
-    [InverseProperty("Users")]
-    public virtual UserRole Role { get; set; } = null!;
 }

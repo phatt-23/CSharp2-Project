@@ -19,7 +19,7 @@ public class WorkspacePricingApiController(
     public async Task<ActionResult<IEnumerable<WorkspacePricingDto>>> GetPricingsOfWorkspaceByIdAsync(int id)
     {
         var pricings = await pricingService.GetPricingsAsync(
-            new PricingQueryRequestDto { WorkspaceId = id });
+            new WorkspacePricingQueryRequestDto { WorkspaceId = id });
         
         var pricingDtos = mapper.Map<IEnumerable<WorkspacePricingDto>>(pricings);
         

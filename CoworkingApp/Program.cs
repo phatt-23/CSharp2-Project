@@ -13,7 +13,7 @@ using AutoFilterer.Swagger;
 
 
 /////////////////////////////////////////////////////////////////////////////
-// HERE IS THE CONFIGURATION OF THE APPLICATION (order doesnt matter)
+// HERE IS THE CONFIGURATION OF THE APPLICATION (order doesn't matter)
 // Add services to the container.
 /////////////////////////////////////////////////////////////////////////////
 
@@ -70,7 +70,7 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "CoworkingApp", Version = "v1" });
     c.UseAutoFiltererParameters();
 });
-builder.Services.AddOpenApi("v1");
+builder.Services.AddOpenApi("v1");  // [server-website]/openapi/v1.json
 
 
 
@@ -95,6 +95,11 @@ builder.Services.AddScoped<IPaginationService, PaginationService>();
 
 builder.Services.AddScoped<IWorkspacePricingService, WorkspacePricingService>();
 builder.Services.AddScoped<IWorkspacePricingRepository, WorkspacePricingRepository>();
+
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
 
 
 

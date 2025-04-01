@@ -1,3 +1,4 @@
+using AutoMapper;
 using CoworkingApp.Models.DataModels;
 using CoworkingApp.Models.Exceptions;
 using CoworkingApp.Services;
@@ -6,16 +7,21 @@ using Microsoft.EntityFrameworkCore;
 
 public interface IWorkspacePricingService
 {
-    Task<IEnumerable<WorkspacePricing>> GetPricingsAsync(PricingQueryRequestDto request);
+    Task<IEnumerable<WorkspacePricing>> GetPricingsAsync(WorkspacePricingQueryRequestDto request);
+    Task<WorkspacePricing> CreateWorkspacePricingAsync(WorkspacePricingCreateRequestDto request);
     Task<WorkspacePricing> GetLatestWorkspacePricingOfWorkspaceAsync(Workspace workspace);
 }
 
 
-public class WorkspacePricingService(IWorkspacePricingRepository repository) : IWorkspacePricingService
+public class WorkspacePricingService(
+    IWorkspacePricingRepository pricingRepository,
+    IWorkspaceRepository workspaceRepository,
+    IMapper mapper
+    ) : IWorkspacePricingService
 {
-    public async Task<IEnumerable<WorkspacePricing>> GetPricingsAsync(PricingQueryRequestDto request)
+    public async Task<IEnumerable<WorkspacePricing>> GetPricingsAsync(WorkspacePricingQueryRequestDto request)
     {
-        var pricings = await repository.GetWorkspacePricingsAsync(new WorkspacePricingFilter 
+        var pricings = await pricingRepository.GetWorkspacePricingsAsync(new WorkspacePricingFilter 
         {
             WorkspaceId = request.WorkspaceId,
             PricePerHour = request.PricePerHour,
@@ -28,9 +34,45 @@ public class WorkspacePricingService(IWorkspacePricingRepository repository) : I
         return pricings;
     }
 
+    public async Task<WorkspacePricing> CreateWorkspacePricingAsync(WorkspacePricingCreateRequestDto request)
+    {
+        // check date timing
+        var now = DateTime.Now;
+
+        if (request is { ValidFrom: not null, ValidUntil: not null })
+        {
+            if (request.ValidFrom <= now || request.ValidUntil <= now)
+                throw new Exception("Dates must be in the future");
+            
+            if (request.ValidFrom > request.ValidUntil)
+                throw new Exception("Valid from must be before valid until");
+        }
+        else
+        {
+            request.ValidFrom = now;
+            request.ValidUntil = null;  // just to be more obvious
+        }
+        
+        // check if workspace exists (throws)
+        var workspaces = await workspaceRepository.GetWorkspacesAsync(new WorkspaceFilter { Id = request.WorkspaceId });
+        var workspace = workspaces.Single();
+        
+        // update the latest pricing
+        var latestPricing = await GetLatestWorkspacePricingOfWorkspaceAsync(workspace);
+
+        latestPricing.ValidUntil = request.ValidFrom;
+
+        await pricingRepository.UpdateWorkspacePricingAsync(latestPricing);
+
+        var newPricing = mapper.Map<WorkspacePricing>(request);
+
+        return await pricingRepository.AddWorkspacePricingAsync(newPricing);
+    }
+
+
     public async Task<WorkspacePricing> GetLatestWorkspacePricingOfWorkspaceAsync(Workspace workspace)
     {
-        var pricings = await repository.GetWorkspacePricingsAsync(
+        var pricings = await pricingRepository.GetWorkspacePricingsAsync(
             new WorkspacePricingFilter { WorkspaceId = workspace.Id });
         
         var query = pricings.AsQueryable();

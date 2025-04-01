@@ -9,12 +9,13 @@ namespace CoworkingApp.Controllers.APIEndpoints.Admin;
 
 public interface IAdminCoworkingCentersApi
 {
-    
+    Task<ActionResult<CoworkingCenterDto>> CreateCoworkingCenterAsync(CoworkingCenterCreateRequestDto request);
+    Task<IActionResult> UpdateCoworkingCenterAsync(int coworkingCenterId, [FromBody] CoworkingCenterUpdateRequestDto request);
 }
 
 
 [ApiController]
-[Route("/api/admin/coworking-centers")]
+[Route("/api/admin/coworking-center")]
 public class AdminCoworkingCenterApiController(
     ICoworkingCenterService coworkingCenterService,
     IMapper mapper
@@ -23,7 +24,7 @@ public class AdminCoworkingCenterApiController(
     /// ADMIN - Create a new coworking center.
     [HttpPost]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<CoworkingCenterDto>> CreateAsync(CoworkingCenterCreateRequestDto request)
+    public async Task<ActionResult<CoworkingCenterDto>> CreateCoworkingCenterAsync(CoworkingCenterCreateRequestDto request)
     {
         try
         {
@@ -35,5 +36,12 @@ public class AdminCoworkingCenterApiController(
         {
             return BadRequest(e.Message);
         }
+    }
+
+    [HttpPut]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateCoworkingCenterAsync(int coworkingCenterId, [FromBody] CoworkingCenterUpdateRequestDto request)
+    {
+        throw new NotImplementedException();
     }
 }

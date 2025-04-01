@@ -12,6 +12,8 @@ namespace CoworkingApp.Services;
 public interface IWorkspacePricingRepository
 {
     Task<IEnumerable<WorkspacePricing>> GetWorkspacePricingsAsync(WorkspacePricingFilter filter);
+    Task<WorkspacePricing> AddWorkspacePricingAsync(WorkspacePricing pricing);
+    Task<WorkspacePricing> UpdateWorkspacePricingAsync(WorkspacePricing pricing);
 }
 
 public class WorkspacePricingRepository(CoworkingDbContext context) : IWorkspacePricingRepository
@@ -29,6 +31,20 @@ public class WorkspacePricingRepository(CoworkingDbContext context) : IWorkspace
             query = query.Include(x => x.Workspace);
 
         return Task.FromResult<IEnumerable<WorkspacePricing>>(query);
+    }
+
+    public async Task<WorkspacePricing> AddWorkspacePricingAsync(WorkspacePricing pricing)
+    {
+        var p = await context.WorkspacePricings.AddAsync(pricing);
+        await context.SaveChangesAsync();
+        return p.Entity;
+    }
+
+    public async Task<WorkspacePricing> UpdateWorkspacePricingAsync(WorkspacePricing pricing)
+    {
+        var p = context.WorkspacePricings.Update(pricing);
+        await context.SaveChangesAsync();
+        return p.Entity;
     }
 }
 
