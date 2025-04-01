@@ -1,3 +1,7 @@
+using AutoFilterer.Attributes;
+using AutoFilterer.Enums;
+using AutoFilterer.Extensions;
+using AutoFilterer.Types;
 using CoworkingApp.Data;
 using CoworkingApp.Models.DataModels;
 using Microsoft.EntityFrameworkCore;
@@ -6,46 +10,52 @@ namespace CoworkingApp.Services;
 
 public interface IWorkspaceRepository
 {
-    Task<IEnumerable<Workspace>> GetWorkspacesAsync(WorkspaceFilterOptions options);
+    Task<IEnumerable<Workspace>> GetWorkspacesAsync(WorkspaceFilter filter);
     Task<Workspace> AddWorkspaceAsync(Workspace workspace);
     Task<Workspace> RemoveWorkspaceAsync(Workspace workspace);
-
     Task<Workspace> UpdateWorkspaceAsync(Workspace workspace);
-    
-    Task<bool> WorkspacesExistAsync(WorkspaceFilterOptions options);
+    Task<bool> WorkspacesExistAsync(WorkspaceFilter filter);
 }
 
 public class WorkspaceRepository(CoworkingDbContext context) : IWorkspaceRepository
 {
-    public Task<IEnumerable<Workspace>> GetWorkspacesAsync(WorkspaceFilterOptions options)
+    public Task<IEnumerable<Workspace>> GetWorkspacesAsync(WorkspaceFilter filter)
     {
-        var ws = context.Workspaces
-            .Where(w => options.Id == null || w.Id == options.Id)
-            .Where(w => options.LikeName == null || w.Name.Contains(options.LikeName))
-            .Where(w => options.LikeDescription == null || w.Description.Contains(options.LikeDescription))
-            .Where(w => options.CoworkingCenterId == null || w.CoworkingCenterId == options.CoworkingCenterId)
-            .Where(w => options.StatusId == null || w.StatusId == options.StatusId)
-            .Where(w => options.StatusType == null || w.Status.Name == options.StatusType.ToString())
-            .Where(w => options.IsRemoved == null || w.IsRemoved == options.IsRemoved)
-            .Where(w => options.CreatedAtLow == null || w.CreatedAt >= options.CreatedAtLow)
-            .Where(w => options.CreatedAtHigh == null || w.CreatedAt <= options.CreatedAtHigh);
+        var query = context.Workspaces.ApplyFilter(filter);
 
-        if (options.IncludeReservations)
-            ws = ws.Include(w => w.Reservations);
-        
-        if (options.IncludeHistories)
-            ws = ws.Include(w => w.WorkspaceHistories);
-        
-        if (options.IncludePricings)
-            ws = ws.Include(w => w.WorkspacePricings);
+        query = filter.CreatedAt.ApplyTo(query, x => x.CreatedAt);
 
-        if (options.IncludeCoworkingCenter)
-            ws = ws.Include(w => w.CoworkingCenter);
+        if (filter.IncludeReservations)
+            query = query.Include(w => w.Reservations);
+        
+        if (filter.IncludeHistories)
+            query = query.Include(w => w.WorkspaceHistories);
+        
+        if (filter.IncludeCoworkingCenter)
+            query = query.Include(w => w.CoworkingCenter);
             
-        if (options.IncludeStatus)
-            ws = ws.Include(w => w.Status);
+        if (filter.IncludeStatus)
+            query = query.Include(w => w.Status);
+
+        if (filter.IncludePricings)
+            query = query.Include(w => w.WorkspacePricings);
         
-        return Task.FromResult<IEnumerable<Workspace>>(ws); 
+        if (filter.IncludeLatestPricing)
+        {
+            query = query.Select(w => new Workspace
+            {
+                Id = w.Id,
+                Name = w.Name,
+                Description = w.Description,
+                CoworkingCenter = w.CoworkingCenter,
+                WorkspacePricings = w.WorkspacePricings
+                    .OrderByDescending(p => p.ValidFrom)
+                    .Take(1) // Only get the latest pricing
+                    .ToList()
+            });
+        }
+        
+        return Task.FromResult<IEnumerable<Workspace>>(query); 
     }
 
     public async Task<Workspace> AddWorkspaceAsync(Workspace workspace)
@@ -69,26 +79,45 @@ public class WorkspaceRepository(CoworkingDbContext context) : IWorkspaceReposit
         return w.Entity;
     }
 
-    public async Task<bool> WorkspacesExistAsync(WorkspaceFilterOptions options)
+    public async Task<bool> WorkspacesExistAsync(WorkspaceFilter filter)
     {
-        return (await GetWorkspacesAsync(options)).Any();
+        return (await GetWorkspacesAsync(filter)).Any();
     }
 }
 
-public class WorkspaceFilterOptions
+public class WorkspaceFilter : FilterBase
 {
+    [CompareTo(nameof(Workspace.Id))]
     public int? Id { get; set; }
+
+    [CompareTo(nameof(Workspace.Name))]
+    [StringFilterOptions(StringFilterOption.Contains)]
     public string? LikeName { get; set; }
+
+    [CompareTo(nameof(Workspace.Description))]
+    [StringFilterOptions(StringFilterOption.Contains)]
     public string? LikeDescription { get; set; }
+    
+    [CompareTo(nameof(Workspace.CoworkingCenterId))]
     public int? CoworkingCenterId { get; set; }
+
+    [CompareTo(nameof(Workspace.StatusId))]
     public int? StatusId { get; set; }
+
+    [CompareTo(nameof(Workspace.Status.Type))]
     public WorkspaceStatusType? StatusType { get; set; }
+
+    [CompareTo(nameof(Workspace.IsRemoved))]
     public bool? IsRemoved { get; set; }
-    public DateTime? CreatedAtLow { get; set; }
-    public DateTime? CreatedAtHigh { get; set; }
+
+    // [CompareTo(nameof(Workspace.CreatedAt))]
+    public RangeFilter<DateTime> CreatedAt { get; set; } = new();
+
     public bool IncludeReservations { get; set; } = false;
     public bool IncludeHistories { get; set; } = false;
+    public bool IncludeLatestPricing { get; set; } = true;
     public bool IncludePricings { get; set; } = false;
+
     public bool IncludeStatus { get; set; } = false;
     public bool IncludeCoworkingCenter { get; set; } = false;
 }

@@ -10,7 +10,7 @@ namespace CoworkingApp.Services;
 public interface IWorkspaceStatusService
 {
     Task<IEnumerable<WorkspaceStatus>> GetWorkspaceStatusesAsync(WorkspaceStatusQueryRequestDto request);
-    Task<WorkspaceStatus?> GetWorkspaceStatusByIdAsync(int workspaceStatusId);
+    Task<WorkspaceStatus> GetWorkspaceStatusByIdAsync(int workspaceStatusId);
 }
 
 
@@ -18,7 +18,7 @@ public class WorkspaceStatusService(IWorkspaceStatusRepository statusRepository)
 {
     public async Task<IEnumerable<WorkspaceStatus>> GetWorkspaceStatusesAsync(WorkspaceStatusQueryRequestDto request)
     { 
-        var ss = await statusRepository.GetWorkspaceStatusAsync(new WorkspaceStatusFilterOptions
+        var ss = await statusRepository.GetWorkspaceStatusAsync(new WorkspaceStatusFilter
         { 
             Id = request.Id,
             LikeName = request.Name
@@ -29,7 +29,7 @@ public class WorkspaceStatusService(IWorkspaceStatusRepository statusRepository)
 
     public async Task<WorkspaceStatus> GetWorkspaceStatusByIdAsync(int workspaceStatusId)
     {
-        var ss = await statusRepository.GetWorkspaceStatusAsync(new WorkspaceStatusFilterOptions
+        var ss = await statusRepository.GetWorkspaceStatusAsync(new WorkspaceStatusFilter
         { 
             Id = workspaceStatusId,
             IncludeWorkspaces = true

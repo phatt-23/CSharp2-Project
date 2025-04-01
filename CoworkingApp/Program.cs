@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Scalar.AspNetCore;
+using AutoFilterer.Swagger;
     
 
 
@@ -64,13 +65,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c => 
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "CoworkingApp", Version = "v1" }));
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "CoworkingApp", Version = "v1" });
+    c.UseAutoFiltererParameters();
+});
 builder.Services.AddOpenApi("v1");
 
 
 
-builder.Services.AddScoped<IWorkspaceHistoryRepository, WorkspaceHistoryRepository>();
+
+builder.Services.AddScoped<IWorkspaceHistoryRepository, WorkspaceWorkspaceHistoryRepository>();
 builder.Services.AddScoped<IWorkspaceStatusRepository, WorkspaceStatusRepository>();
 
 builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
@@ -79,7 +84,7 @@ builder.Services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
 builder.Services.AddScoped<IWorkspaceStatusService, WorkspaceStatusService>();
 builder.Services.AddScoped<IWorkspaceStatusRepository, WorkspaceStatusRepository>();
 
-builder.Services.AddScoped<IReservationsService, ReservationsService>();
+builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 
 builder.Services.AddScoped<ICoworkingCenterRepository, CoworkingCenterRepository>();
@@ -87,6 +92,9 @@ builder.Services.AddScoped<ICoworkingCenterService, CoworkingCenterService>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPaginationService, PaginationService>();
+
+builder.Services.AddScoped<IWorkspacePricingService, WorkspacePricingService>();
+builder.Services.AddScoped<IWorkspacePricingRepository, WorkspacePricingRepository>();
 
 
 
@@ -108,14 +116,13 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 // In the development profile, use the Swagger and Scalar for API testing.
 if (app.Environment.IsDevelopment())
 {
+    app.MapOpenApi();
+    app.MapScalarApiReference();
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "AuthCore API V1");
     });
-    
-    app.MapOpenApi();
-    app.MapScalarApiReference();
 }
 else
 {

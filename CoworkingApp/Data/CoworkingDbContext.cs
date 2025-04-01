@@ -37,7 +37,6 @@ public partial class CoworkingDbContext : DbContext
         modelBuilder.Entity<CoworkingCenter>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("coworking_center_pkey");
-
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
         });
 

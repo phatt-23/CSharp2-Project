@@ -1,3 +1,7 @@
+using AutoFilterer.Attributes;
+using AutoFilterer.Enums;
+using AutoFilterer.Extensions;
+using AutoFilterer.Types;
 using CoworkingApp.Data;
 using CoworkingApp.Models.DataModels;
 using Microsoft.EntityFrameworkCore;
@@ -6,26 +10,24 @@ namespace CoworkingApp.Services;
 
 public interface ICoworkingCenterRepository
 {
-    Task<IEnumerable<CoworkingCenter>> GetCoworkingCentersAsync(CoworkingCenterFilterOptions options);
+    Task<IEnumerable<CoworkingCenter>> GetCoworkingCentersAsync(CoworkingCenterFilter options);
     Task<CoworkingCenter> AddCoworkingCenterAsync(CoworkingCenter coworkingCenter);
 }
 
 public class CoworkingCenterRepository(CoworkingDbContext context) : ICoworkingCenterRepository
 {
-    public Task<IEnumerable<CoworkingCenter>> GetCoworkingCentersAsync(CoworkingCenterFilterOptions options)
+    public Task<IEnumerable<CoworkingCenter>> GetCoworkingCentersAsync(CoworkingCenterFilter filter)
     {
-        var ccs = context.CoworkingCenters
-            .Where(c => options.Id == null || options.Id == c.Id)
-            .Where(c => options.LikeName == null || c.Name.Contains(options.LikeName))
-            .Where(c => options.LatitudeLow == null || options.LatitudeLow <= c.Latitude)
-            .Where(c => options.LatitudeHigh == null || options.LatitudeHigh >= c.Latitude)
-            .Where(c => options.CreatedAtStart == null || options.CreatedAtStart >= c.CreatedAt)
-            .Where(c => options.CreatedAtEnd == null || options.CreatedAtEnd <= c.CreatedAt);
+        var query = context.CoworkingCenters.ApplyFilter(filter);
+            
+        query = filter.Latitude.ApplyTo(query, c => c.Latitude);
+        query = filter.Longitude.ApplyTo(query, c => c.Latitude);
+        query = filter.CreatedAt.ApplyTo(query, c => c.CreatedAt);
         
-        if (options.IncludeWorkspaces)
-            ccs = ccs.Include(cc => cc.Workspaces);
+        if (filter.IncludeWorkspaces)
+            query = query.Include(cc => cc.Workspaces);
 
-        return Task.FromResult<IEnumerable<CoworkingCenter>>(ccs);
+        return Task.FromResult<IEnumerable<CoworkingCenter>>(query);
     }
 
     public async Task<CoworkingCenter> AddCoworkingCenterAsync(CoworkingCenter coworkingCenter)
@@ -42,16 +44,23 @@ public class CoworkingCenterRepository(CoworkingDbContext context) : ICoworkingC
     }
 }
 
-public class CoworkingCenterFilterOptions
+public class CoworkingCenterFilter : FilterBase
 {
+     [CompareTo(nameof(CoworkingCenter.Id))]
      public int? Id { get; set; }
+
+     [StringFilterOptions(StringFilterOption.Contains)]
+     [CompareTo(nameof(CoworkingCenter.Name))]
      public string? LikeName { get; set; }
+
+     [StringFilterOptions(StringFilterOption.Contains)]
+     [CompareTo(nameof(CoworkingCenter.Description))]
      public string? LikeDescription { get; set; }
-     public decimal? LatitudeLow { get; set; }
-     public decimal? LatitudeHigh { get; set; }
-     public decimal? LongitudeLow { get; set; }
-     public decimal? LongitudeHigh { get; set; }
-     public DateTime? CreatedAtStart { get; set; }   
-     public DateTime? CreatedAtEnd { get; set; }
+     
+     public RangeFilter<decimal> Latitude { get; set; } = new();
+     public RangeFilter<decimal> Longitude { get; set; } = new();
+     public RangeFilter<DateTime> CreatedAt { get; set; } = new();
+     
      public bool IncludeWorkspaces { get; set; } = false;
 }
+

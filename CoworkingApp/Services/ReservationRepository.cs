@@ -1,4 +1,8 @@
 using System.Data;
+using AutoFilterer.Attributes;
+using AutoFilterer.Extensions;
+using AutoFilterer.Types;
+using AutoFilterer.Enums;
 using CoworkingApp.Data;
 using CoworkingApp.Models.DataModels;
 using CoworkingApp.Models.DTOModels.Reservation;
@@ -9,7 +13,7 @@ namespace CoworkingApp.Services;
 
 public interface IReservationRepository
 {
-    Task<IEnumerable<Reservation>> GetReservationsAsync(ReservationsFilterOptions options);
+    Task<IEnumerable<Reservation>> GetReservationsAsync(ReservationsFilter filter);
     Task<Reservation> AddReservationAsync(Reservation res);
     Task<Reservation> UpdateReservationAsync(Reservation res);
 }
@@ -17,31 +21,23 @@ public interface IReservationRepository
 
 public class ReservationRepository(CoworkingDbContext context) : IReservationRepository
 {
-    public Task<IEnumerable<Reservation>> GetReservationsAsync(ReservationsFilterOptions options)
+    public Task<IEnumerable<Reservation>> GetReservationsAsync(ReservationsFilter filter)
     {
-        var rs = context.Reservations
-            .Where(r => options.Id == null || options.Id == r.Id)
-            .Where(r => options.WorkspaceId == null || options.WorkspaceId == r.WorkspaceId)
-            .Where(r => options.StartTime == null || options.StartTime <= r.StartTime)
-            .Where(r => options.EndTime == null || options.EndTime >= r.EndTime)
-            .Where(r => options.TotalPriceLow == null || options.TotalPriceLow <= r.TotalPrice)
-            .Where(r => options.TotalPriceHigh == null || options.TotalPriceHigh >= r.TotalPrice)
-            .Where(r => options.PricingId == null || options.PricingId == r.PricingId)
-            .Where(r => options.CreatedAtLow == null || options.CreatedAtLow <= r.CreatedAt)
-            .Where(r => options.CreatedAtHigh == null || options.CreatedAtHigh >= r.CreatedAt)
-            .Where(r => options.CustomerId == null || options.CustomerId == r.CustomerId)
-            .Where(r => options.IsCancelled == null || options.IsCancelled == r.IsCancelled);
+        var query = context.Reservations.ApplyFilter(filter);
+        
+        query = filter.TotalPrice.ApplyTo(query, x => x.TotalPrice);
+        query = filter.CreatedAt.ApplyTo(query, x => x.CreatedAt);
 
-        if (options.IncludeCustomer)
-            rs = rs.Include(r => r.Customer);
+        if (filter.IncludeCustomer)
+            query = query.Include(r => r.Customer);
 
-        if (options.IncludeWorkspacePricing)
-            rs = rs.Include(r => r.Pricing);
+        if (filter.IncludeWorkspacePricing)
+            query = query.Include(r => r.Pricing);
 
-        if (options.IncludeWorkspace)
-            rs = rs.Include(r => r.Workspace);
+        if (filter.IncludeWorkspace)
+            query = query.Include(r => r.Workspace);
 
-        return Task.FromResult<IEnumerable<Reservation>>(rs);
+        return Task.FromResult<IEnumerable<Reservation>>(query);
     }
 
     public async Task<Reservation> AddReservationAsync(Reservation res)
@@ -93,19 +89,24 @@ public class ReservationRepository(CoworkingDbContext context) : IReservationRep
     }
 }
 
-public class ReservationsFilterOptions
+public class ReservationsFilter : FilterBase
 {
-    public int? Id { get; set; }
-    public int? WorkspaceId { get; set; }
+    [CompareTo(nameof(Reservation.Id))] public int? Id { get; set; }
+    [CompareTo(nameof(Reservation.WorkspaceId))] public int? WorkspaceId { get; set; }
+    
+    [CompareTo(nameof(Reservation.StartTime))]
+    [OperatorComparison(OperatorType.GreaterThanOrEqual)]
     public DateTime? StartTime { get; set; }
+
+    [CompareTo(nameof(Reservation.StartTime))]
+    [OperatorComparison(OperatorType.LessThanOrEqual)]
     public DateTime? EndTime { get; set; }
-    public decimal? TotalPriceLow { get; set; }
-    public decimal? TotalPriceHigh { get; set; }
-    public int? PricingId { get; set; }
-    public DateTime? CreatedAtLow { get; set; }
-    public DateTime? CreatedAtHigh { get; set; }
-    public int? CustomerId { get; set; }
-    public bool? IsCancelled { get; set; }
+
+    public NullableRangeFilter<decimal> TotalPrice { get; set; } = new();
+    [CompareTo(nameof(Reservation.PricingId))] public int? PricingId { get; set; }
+    public RangeFilter<DateTime> CreatedAt { get; set; } = new();
+    [CompareTo(nameof(Reservation.CustomerId))] public int? CustomerId { get; set; }
+    [CompareTo(nameof(Reservation.IsCancelled))] public bool? IsCancelled { get; set; }
     public bool IncludeCustomer { get; set; } = false;
     public bool IncludeWorkspacePricing { get; set; } = false;
     public bool IncludeWorkspace { get; set; } = false;

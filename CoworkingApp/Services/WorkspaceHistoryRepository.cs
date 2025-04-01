@@ -1,3 +1,7 @@
+using System.ComponentModel.DataAnnotations;
+using AutoFilterer.Attributes;
+using AutoFilterer.Extensions;
+using AutoFilterer.Types;
 using CoworkingApp.Data;
 using CoworkingApp.Models.DataModels;
 using Microsoft.EntityFrameworkCore;
@@ -7,30 +11,25 @@ namespace CoworkingApp.Services;
 
 public interface IWorkspaceHistoryRepository
 {
-    Task<IEnumerable<WorkspaceHistory>> GetHistoriesAsync(WorkspaceHistoryFilterOptions options);
+    Task<IEnumerable<WorkspaceHistory>> GetHistoriesAsync(WorkspaceHistoryFilter filter);
     Task<WorkspaceHistory> AddWorkspaceHistoryAsync(WorkspaceHistory workspaceHistory);
-    
 }
 
-public class WorkspaceHistoryRepository(CoworkingDbContext context) : IWorkspaceHistoryRepository
+public class WorkspaceWorkspaceHistoryRepository(CoworkingDbContext context) : IWorkspaceHistoryRepository
 {
-    public Task<IEnumerable<WorkspaceHistory>> GetHistoriesAsync(WorkspaceHistoryFilterOptions options)
+    public Task<IEnumerable<WorkspaceHistory>> GetHistoriesAsync(WorkspaceHistoryFilter filter)
     {
-        var hs = context.WorkspaceHistories
-                .Where(w => options.Id == null || options.Id == w.Id)
-                .Where(w => options.WorkspaceId == null || options.WorkspaceId == w.Id)
-                .Where(w => options.CreatedAtLow == null || w.CreatedAt >= options.CreatedAtLow)
-                .Where(w => options.CreatedAtHigh == null || w.CreatedAt >= options.CreatedAtHigh)
-                .Where(w => options.StatusId == null || options.StatusId == w.StatusId)
-                .Where(w => options.StatusType == null || options.StatusType.ToString() == w.Status.Name);
+        var query = context.WorkspaceHistories.ApplyFilter(filter);
 
-        if (options.IncludeStatus)
-            hs = hs.Include(h => h.Status);
+        query = filter.CreatedAt.ApplyTo(query, x => x.CreatedAt);
 
-        if (options.IncludeWorkspace)
-            hs = hs.Include(h => h.Workspace);
+        if (filter.IncludeStatus)
+            query = query.Include(h => h.Status);
 
-        return Task.FromResult<IEnumerable<WorkspaceHistory>>(hs);
+        if (filter.IncludeWorkspace)
+            query = query.Include(h => h.Workspace);
+
+        return Task.FromResult<IEnumerable<WorkspaceHistory>>(query);
     }
 
     public async Task<WorkspaceHistory> AddWorkspaceHistoryAsync(WorkspaceHistory workspaceHistory)
@@ -42,14 +41,19 @@ public class WorkspaceHistoryRepository(CoworkingDbContext context) : IWorkspace
 }
 
 
-public class WorkspaceHistoryFilterOptions
+public class WorkspaceHistoryFilter : FilterBase
 {
+    [CompareTo(nameof(WorkspaceHistory.Id))]
     public int? Id { get; set; }
+    [CompareTo(nameof(WorkspaceHistory.WorkspaceId))]
     public int? WorkspaceId { get; set; }
+    [CompareTo(nameof(WorkspaceHistory.StatusId))]
     public int? StatusId { get; set; }
+    [CompareTo(nameof(WorkspaceHistory.Status.Type))]
     public WorkspaceStatusType? StatusType { get; set; }
-    public DateTime? CreatedAtLow { get; set; }
-    public DateTime? CreatedAtHigh { get; set; }
+
+    public RangeFilter<DateTime> CreatedAt { get; set; } = new();
+
     public bool IncludeStatus { get; set; } = false;
     public bool IncludeWorkspace { get; set; } = false;
 }

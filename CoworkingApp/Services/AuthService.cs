@@ -106,7 +106,7 @@ public class AuthService(
 
     private async Task<string> GenerateAndSaveRefreshTokenAsync(User user)
     {
-        var refreshToken = GenerateRefreshToken();
+        var refreshToken = GenerateRefreshToken(user.Id.ToString());
         user.RefreshToken = refreshToken;
         user.RefreshTokenExpiry = DateTime.Now.AddMinutes(configuration.GetValue<double>("JwtSettings:RefreshTokenExpiryMinutes"));
         await context.SaveChangesAsync();
@@ -134,9 +134,25 @@ public class AuthService(
         return user; 
     }
 
-    private static string GenerateRefreshToken()
+    private string GenerateRefreshToken(string userId)
     {
-        return Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));    
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, userId) // Store userId inside refresh token
+        };
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration.GetValue<string>("JwtSettings:SecretKey")!));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var token = new JwtSecurityToken(
+            issuer: configuration.GetValue<string>("JwtSettings:Issuer"),
+            audience: configuration.GetValue<string>("JwtSettings:Audience"),
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(configuration.GetValue<double>("JwtSettings:RefreshTokenExpiryMinutes")!), // Refresh token expiry
+            signingCredentials: creds
+            );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);  
     }
 
 }

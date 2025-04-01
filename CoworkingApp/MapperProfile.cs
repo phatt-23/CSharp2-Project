@@ -15,17 +15,22 @@ public class MapperProfile : Profile
     {
         CreateMap<CoworkingCenter, CoworkingCenterDto>().ReverseMap();
         
-        CreateMap<Workspace, WorkspaceDto>().ReverseMap();
+        CreateMap<Workspace, WorkspaceDto>()
+            .ForMember(dest => dest.LatestPricing, opt => 
+                opt.MapFrom(src => src.WorkspacePricings.FirstOrDefault()))
+            .ReverseMap();
+        
         CreateMap<Workspace, WorkspaceDetailDto>().ReverseMap();
-        
+        CreateMap<Workspace, AdminWorkspaceDetailDto>().ReverseMap();
+        CreateMap<Workspace, AdminWorkspaceDto>().ReverseMap();
         CreateMap<WorkspaceStatus, WorkspaceStatusDto>().ReverseMap();
-        
         CreateMap<Reservation, ReservationDto>().ReverseMap();
         CreateMap<ReservationCreateRequestDto, Reservation>().ReverseMap();
-
         CreateMap<User, UserDto>().ReverseMap();
         CreateMap<UserRegisterRequestDto, User>().ReverseMap();
-
         CreateMap<UserRole, UserRoleDto>().ReverseMap();
+        CreateMap<WorkspacePricing, WorkspacePricingDto>().ReverseMap();
+        CreateMap<WorkspacePricing, LatestWorkspacePricingDto>().ReverseMap();
+        CreateMap<WorkspaceHistory, WorkspaceHistoryDto>().ReverseMap();
     }
 }
