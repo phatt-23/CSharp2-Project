@@ -1,0 +1,83 @@
+@model IEnumerable<CoworkingApp.Models.DataModels.Reservation>
+
+@{
+    ViewBag.Title = "My reservation";
+    Layout = "_Layout";
+}
+
+<page id="reservation-index-page">
+    <h2>My Reservation</h2>
+
+    <a asp-action="Create">New reservation</a>
+
+    <!-- Display the error messages if there are any -->
+    @if (ViewData.ModelState != null && ViewData.ModelState.Values.Any(v => v.Errors.Count > 0))
+    {
+        <div class="alert alert-danger">
+            <h3>Error</h3>
+            <ul>
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <li>@error.ErrorMessage</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <table>
+        <thead>
+            <th>Workspace</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Price</th>
+            <th>Created At</th>
+            <th>Actions</th>
+        </thead>
+        <tbody>
+        @foreach (var reservation in Model.Where(x => x.IsCancelled == false))
+        {
+            <tr>
+                <td><a asp-controller="Workspace" asp-action="Detail" asp-route-id="@reservation.WorkspaceId">@reservation.Workspace.Name</a></td>
+                <td>@reservation.StartTime</td>
+                <td>@reservation.EndTime</td>
+                <td>@reservation.TotalPrice</td>
+                <td>@reservation.CreatedAt</td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@reservation.ReservationId">Detail</a>
+                    <form method="post" asp-action="Cancel" asp-route-id="@reservation.ReservationId">
+                        <button disabled="@(reservation.StartTime >= DateTime.Now ? false : true)" 
+                                type="submit">
+                            Cancel
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</page>
+
+@section Styles {
+<style>
+#reservation-index-page {
+
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+    td {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+    }
+
+    th {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+    }
+
+}
+</style>
+}

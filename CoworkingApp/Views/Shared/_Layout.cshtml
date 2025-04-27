@@ -1,0 +1,123 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    @if (ViewData["Title"] != null)
+    {
+        <title>@ViewData["Title"] - DeskSpace</title>
+    }
+    else
+    {
+        <title>DeskSpace</title>
+    }
+
+    <link rel="stylesheet" href="~/lib/leaflet/dist/leaflet.css" />
+    <style>
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: 50px;
+            @* font-family: arial, sans-serif; *@
+        }
+
+        #layout-body {
+            display: flex;
+            flex-direction: column;
+            margin: 0 auto;
+            max-width: 800px;
+            gap: 1em;
+
+            #layout-nav {
+                display: flex;
+            
+                position: sticky;
+                top: 0;
+                overflow: hidden;
+
+                z-index: 1200;  /* Leaflet's max z-index is 1000 */
+
+                align-items: center;
+                background-color: lightgray;
+                justify-content: space-between;
+                padding-inline: 1em;
+
+                .nav-list {
+                    display: flex;
+
+                    .nav-item {
+                        display: inline-block;
+                        margin-left: 1rem;
+                    }
+                }
+            }
+
+            #layout-main {
+
+            }
+
+            #layout-footer {
+                display: flex;
+                flex-direction: row;
+                align-content: center;
+                justify-content: space-between;
+                margin-bottom: 1em;
+            }
+        }
+    </style>
+    @* For local styling of views. This pastes whatever is in the Styles section. *@
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+
+<body id="layout-body">
+    <nav id="layout-nav">
+        <a asp-controller="Home" asp-action="Index">DeskSpace</a>
+        <ul class="nav-list">
+            <li class="nav-item"><a asp-controller="CoworkingCenter" asp-action="Index">coworking centers</a></li>
+            <li class="nav-item"><a asp-controller="Workspace" asp-action="Index">workspaces</a></li>
+        </ul>
+        <ul class="nav-list">
+            @if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                <li class="nav-item">
+                    <a asp-controller="Home" asp-action="Dashboard">dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <form method="post" asp-action="Logout" asp-controller="Account">
+                        <button type="submit">logout</button>
+                    </form>
+                </li>
+            }
+            else
+            {
+                <li class="nav-item">
+                    <a asp-controller="Account" asp-action="Register">register</a>
+                </li>
+                <li class="nav-item">
+                    <a asp-controller="Account" asp-action="Login">login</a>
+                </li>
+            }
+        </ul>
+    </nav>
+
+    <main id="layout-main" role="main">
+        @RenderBody()
+    </main>
+
+    <footer id="layout-footer">
+        <section>
+            <a asp-controller="Home" asp-action="Privacy">privacy</a> 
+            | <a asp-controller="Developer" asp-action="Index">dev</a>
+        </section>
+        <section>
+            <span>&copy; 2025 - DeskSpace</span> 
+        </section>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/lib/leaflet/dist/leaflet.js"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,22 @@
+@host = localhost:5176
+
+### GET request to example server
+
+
+POST {{host}}/api/auth/register
+Content-Type: text/json
+
+{
+  "email": "tra0163@vsb.cz",
+  "password": "haha"
+}
+###
+
+POST /api/Auth/refresh-tokens HTTP/1.1
+Host: {{host}} 
+Content-Type: application/json
+
+{
+  "userId": 6,
+  "refreshToken": "AAEDppeTZa2rQuBUcVygmooOtj2e119z9dgaWL0mqws="
+}

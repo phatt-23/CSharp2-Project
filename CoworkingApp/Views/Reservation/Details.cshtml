@@ -1,0 +1,32 @@
+@model CoworkingApp.Models.DataModels.Reservation 
+
+@{
+    ViewBag.Title = "Reservation Detail";
+    Layout = "_Layout";
+}
+
+<h2>Your Reservation</h2>
+
+<a asp-action="Index">Go back to index</a>
+
+<atricle>
+    <dl>
+        <dt>Workspace<dt>
+        <dd>@Model.Workspace.Name</dd>
+
+        <dt>Start Time<dt>
+        <dd>@Model.StartTime</dd>
+        
+        <dt>End Time<dt>
+        <dd>@Model.EndTime</dd>
+        
+        <dt>Total Price<dt>
+        <dd>@Model.TotalPrice</dd>
+        
+        <dt>Created At<dt>
+        <dd>@Model.CreatedAt</dd>
+        
+        <dt>Cancelled<dt>
+        <dd>@Model.IsCancelled</dd>
+    </dl>
+</atricle>

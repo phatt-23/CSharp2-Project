@@ -1,0 +1,15 @@
+@using System.Security.Claims
+@model dynamic
+
+@{
+    ViewData["Title"] = "User Dashboard";
+}
+
+<h1>User Dashboard</h1>
+
+<p>
+    You are authenticated and your email is 
+    @User.FindFirst(ClaimTypes.Email)!.Value
+</p> 
+
+<a asp-controller="Reservation" asp-action="Index">My Reservations</a>

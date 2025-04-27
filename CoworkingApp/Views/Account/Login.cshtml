@@ -1,0 +1,64 @@
+@model CoworkingApp.Models.DTOModels.Auth.UserLoginRequestDto
+
+@{
+    ViewBag.Title = "Login";
+    Layout = "_Layout";
+}
+
+<h2>Login</h2>
+
+<form method="post" asp-action="Login">
+    <div class="field-row">
+        <label asp-for="Email"></label>
+        <input asp-for="Email" type="email" />
+        <span class="field-error" asp-validation-for="Email"></span>
+    </div>
+
+    <div class="field-row">
+        <label asp-for="Password"></label>
+        <input asp-for="Password" type="password" />
+        <span class="field-error" asp-validation-for="Password"></span>
+    </div>
+
+    
+    <div class="form-controls">
+        <a asp-action="Register">I don't have an account yet</a>
+        <button type="submit">Sign In</button>
+    </div>
+</form>
+
+
+
+@section Styles { 
+<style>
+.field-row {
+    display: flex;
+    align-items: center;
+    margin-block: 1rem;
+}    
+
+.field-row label {
+    flex: 0 0 16rem;            /* fixed width for labels */
+    margin-right: 0.5rem;
+}
+
+.field-row input {
+    flex: 1;                   /* take up remaining space */
+    margin-right: 0.5rem;
+}
+
+.field-error {
+    color: #c00;               /* red for errors */
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+
+.form-controls {
+    display: flex;
+    justify-content: space-between;
+
+    text-align: right;
+    margin-top: 1rem;
+}
+</style>
+}

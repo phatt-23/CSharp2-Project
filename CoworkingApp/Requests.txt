@@ -1,0 +1,1 @@
+Request Path: / | Duration: 2.2478 msRequest Path: /css/mi.css | Duration: 1.2189 msRequest Path: /js/site.js | Duration: 0.6334 msRequest Path: /lib/bootstrap/dist/js/bootstrap.bundle.min.js | Duration: 1.7402 ms

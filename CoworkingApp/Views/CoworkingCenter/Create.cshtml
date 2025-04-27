@@ -1,0 +1,30 @@
+@model CoworkingApp.Models.DTOModels.CoworkingCenters.CoworkingCenterCreateRequestDto
+
+<title>Coworking Center - Create</title>
+
+<h1>Create a Coworking Center</h1>
+
+<form method="post" asp-action="Create">
+    <div>
+        <label asp-for="Name"></label>
+        <input asp-for="Name" type="text"/>
+        <span asp-validation-for="Name"></span>
+    </div>
+    <div>
+        <label asp-for="Description"></label>
+        <input asp-for="Description" type="text"/>
+        <span asp-validation-for="Description"></span>
+    </div>
+    <div>
+        <label asp-for="Latitude"></label>
+        <input asp-for="Latitude" type="number"/>
+        <span asp-validation-for="Latitude"></span>
+    </div>
+    <div>
+        <label asp-for="Longitude"></label>
+        <input asp-for="Longitude" type="number"/>
+        <span asp-validation-for="Longitude"></span>
+    </div>
+    
+    <button type="submit">Create</button>
+</form>

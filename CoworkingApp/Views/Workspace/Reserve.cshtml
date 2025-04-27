@@ -1,0 +1,44 @@
+@model CoworkingApp.Models.ViewModels.WorkspaceReserveViewModel;
+
+@{
+    ViewBag.Title = "title";
+    Layout = "_Layout";
+}
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            @* $("#workspace-reservation-form").on('') *@
+        })
+    </script>
+}
+
+<h2>Make a reservation for <strong>@Model.Workspace.Name</strong></h2>
+
+<p>
+    <strong>Price:</strong> @(Model.Workspace.WorkspacePricings.MaxBy(x => x.ValidFrom)!.PricePerHour)$ per hour
+</p>
+
+<form id="workspace-reservation-form" method="post" asp-controller="Workspace" asp-action="Reserve">
+    <div>
+        <label asp-for="@Model.Request.StartTime">Start time</label>
+        <input 
+            type="datetime-local" 
+            asp-for="@Model.Request.StartTime" 
+            value="@Model.Request.StartTime.ToString()"
+            />
+        <span asp-validation-for="@Model.Request.StartTime"></span>
+    </div>
+    
+    <div>
+        <label asp-for="@Model.Request.EndTime">End time</label>
+        <input 
+            type="datetime-local" 
+            asp-for="@Model.Request.EndTime" 
+            value="@Model.Request.EndTime.ToString()"
+            />
+        <span asp-validation-for="@Model.Request.EndTime"></span>
+    </div>
+    
+    <button type="submit">Create</button>
+</form>
+

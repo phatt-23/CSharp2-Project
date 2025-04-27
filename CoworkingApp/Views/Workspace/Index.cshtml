@@ -1,0 +1,200 @@
+@using CoworkingApp.Services
+@model CoworkingApp.Models.ViewModels.WorkspaceIndexViewModel;
+
+@{
+    ViewBag.Title = "Workspaces";
+    Layout = "_Layout";
+    
+    ViewBag.Title = "Coworking Centers";
+    Layout = "_Layout";
+
+    var pageCount = (int)Math.Ceiling(Model.Workspaces.Count() / (decimal)Model.Pagination.PageSize);
+    var paginatedWorkspaces = Pagination.Paginate(Model.Workspaces, Model.Pagination.PageNumber, Model.Pagination.PageSize).ToList();
+    
+    // send this data to the js side below to add them onto the leaflet map
+    var workspaceData = paginatedWorkspaces.AsQueryable()
+        .Select(w => new {
+            w.WorkspaceId,
+            w.Name,
+            w.Description,
+            w.CoworkingCenter.Address,
+            AddressDisplayName = $"{w.CoworkingCenter.Address.StreetAddress}, {w.CoworkingCenter.Address.City.Name}, {w.CoworkingCenter.Address.City.Country.Name}",
+        });
+
+    var workspaceJson = System.Text.Json.JsonSerializer.Serialize(workspaceData);
+}
+
+@section Scripts {
+    <script>
+    let centersMap;
+
+    document.addEventListener("DOMContentLoaded", async function () {
+        centersMap = L.map( $('#centers-map')[0] ).setView([50.0755, 14.4378], 2)  // prague
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(centersMap)
+
+        const workspaces = @Html.Raw(workspaceJson)  // deserialize center data from Razor
+
+        workspaces.forEach(ws => {
+            L.marker([ws.Address.Latitude, ws.Address.Longitude]).addTo(centersMap)
+                .bindPopup(`
+                    <strong><a href='/workspace/${ws.WorkspaceId}'>${ws.Name}</a></strong>
+                    <br>
+                    <p><strong>${ws.AddressDisplayName}</strong></p>
+                    <p>${ws.Description}</p>
+                    <a align='right' href='/workspace/${ws.WorkspaceId}'>View detail</a>
+                `)
+        })
+    })
+
+    function seeOnMap(latitude, longitude) {
+        centersMap.flyTo([latitude, longitude], 12, { duration: 1 });
+    }
+</script>
+}
+
+<main id="workspace-index">
+    <h2>Workspaces</h2>
+    @* <a asp-action="Create" class="btn btn-primary">+ Create New</a> *@
+
+    <section id="map-section" aria-label="Map of all workspaces">
+        <div id="centers-map" style="height: 400px;"></div>
+    </section>
+
+    <!-- pagination -->
+    <section id="pagination-section">
+        @Html.ActionLink("back", "Index", "Workspace", new
+        {
+            PageNumber = Math.Max(Model.Pagination.PageNumber - 1, 1), 
+            PageSize = Model.Pagination.PageSize
+        })
+        @for (var i = 1; i <= pageCount; i++)
+        {
+            if (i == Model.Pagination.PageNumber) 
+            {
+                <u>
+                    <b>@Html.ActionLink(i.ToString(), "Index", "Workspace", new { PageNumber = i, Model.Pagination.PageSize })</b>
+                </u>
+            }
+            else
+            {
+                @Html.ActionLink(i.ToString(), "Index", "Workspace", new { PageNumber = i, Model.Pagination.PageSize })
+            }
+        }
+        @Html.ActionLink("next", "Index", "Workspace", new { PageNumber = Math.Min(Model.Pagination.PageNumber + 1, pageCount), PageSize = Model.Pagination.PageSize })
+    </section>
+    
+    @if (Model.Workspaces.Any())
+    {
+        <!-- workspace cards -->
+        <ul>
+        @foreach (var ws in paginatedWorkspaces)
+        {
+            <li>
+                <article>
+                    <h3>@ws.Name</h3>
+                    <p>@ws.Description</p>
+                    <p><strong>Coworking Center:</strong> @ws.CoworkingCenter.Name</p>
+                    <p><strong>Address:</strong> @ws.CoworkingCenter.Address.StreetAddress, @ws.CoworkingCenter.Address.City.Name, @ws.CoworkingCenter.Address.City.Country.Name</p>
+                    <menu class="workspace-card-controls">
+                        <a asp-controller="Workspace" asp-action="Detail" asp-route-id="@ws.WorkspaceId">View Details</a>
+                        <a href="#map-section" onclick="seeOnMap(@ws.CoworkingCenter.Address.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture), @ws.CoworkingCenter.Address.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture))">See on map</a>
+                    </menu>
+                </article>
+            </li>
+        }
+        </ul>
+    }
+    else
+    {
+        <p>Sorry, there are no coworking centers available.</p>
+    }
+</main>
+
+
+@section Styles {
+    <style>
+#workspace-index {
+    display: flex;
+    flex-direction: column;
+
+    #pagination-section {
+        display: flex;
+        align-items: center;  
+        gap: 0.75rem;
+        margin-top: 0.75rem;    
+        margin-left: auto;
+
+        a {
+            text-decoration: none;
+        }
+    }
+
+    ul {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        list-style: none;
+        padding: 0;
+        row-gap: 0.5rem;
+        column-gap: 0.5rem;
+    }
+
+    ul li {
+        margin-block: 0.5rem;
+    }
+
+    ul li article {
+        display: flex;
+        flex-direction: column;
+
+        border: 1px solid gray;
+        padding: 0.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        height: 100%;
+        
+        h2, h3, h4 {
+            color: black;
+        }
+
+        p {
+            color: black;
+        }
+
+        .workspace-card-controls {
+            margin-top: auto;  /* push to bottom */ 
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+    }
+
+
+    ul li article:hover {
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+        }
+</style>
+}
+
+
+@* <table> *@
+@*     <thead> *@
+@*         <td><b>Name</b></td> *@
+@*         <td><b>Description</b></td> *@
+@*     </thead> *@
+@*     @foreach (var workspace in Model) *@
+@*     { *@
+@*         <tr> *@
+@*             <td>@workspace.Name</td> *@
+@*             <td>@workspace.Description</td> *@
+@*             <td> *@
+@*                 <a asp-action="Detail" asp-route-id="@workspace.WorkspaceId">Detail</a> *@
+@*                 <a asp-action="Edit" asp-route-id="@workspace.WorkspaceId">Edit</a> *@
+@*                 <a asp-action="Remove" asp-route-id="@workspace.WorkspaceId">Remove</a> *@
+@*             </td> *@
+@*         </tr> *@
+@*     } *@
+@* </table> *@

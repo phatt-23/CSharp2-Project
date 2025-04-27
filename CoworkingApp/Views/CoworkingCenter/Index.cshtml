@@ -1,0 +1,176 @@
+@using System.Text.Json;
+@using CoworkingApp.Services;
+@using CoworkingApp.Models.DTOModels;
+@model CoworkingApp.Models.ViewModels.CoworkingCenterIndexViewModel;
+
+@{
+    ViewBag.Title = "Coworking Centers";
+    Layout = "_Layout";
+
+    var pageCount = (int)Math.Ceiling(Model.CoworkingCenters.Count() / (decimal)Model.Pagination.PageSize);
+    var paginatedCoworkingCenters = Pagination.Paginate(Model.CoworkingCenters, Model.Pagination.PageNumber, Model.Pagination.PageSize).ToList();
+
+    // send this data to the js side below to add them onto the leaflet map
+    var centersData = paginatedCoworkingCenters.AsQueryable()
+        .Select(c => new {
+            c.CoworkingCenterId,
+            c.Name,
+            c.Description,
+            c.Address,
+            AddressDisplayName = $"{c.Address.StreetAddress}, {c.Address.City.Name}, {c.Address.City.Country.Name}",
+        });
+
+    var centersJson = System.Text.Json.JsonSerializer.Serialize(centersData);
+}
+
+@section Scripts {
+<script>
+    let centersMap;
+
+    document.addEventListener("DOMContentLoaded", async function () {
+        centersMap = L.map( $('#centers-map')[0] ).setView([50.0755, 14.4378], 2)  // prague
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(centersMap)
+
+        const centers = @Html.Raw(centersJson)  // deserialize center data from Razor
+
+        centers.forEach(center => {
+            L.marker([center.Address.Latitude, center.Address.Longitude]).addTo(centersMap)
+                .bindPopup(`
+                    <strong><a href='/coworking-center/${center.CoworkingCenterId}'>${center.Name}</a></strong>
+                    <br>
+                    <p><strong>${center.AddressDisplayName}</strong></p>
+                    <p>${center.Description}</p>
+                    <a align='right' href='/coworking-center/${center.CoworkingCenterId}'>View detail</a>
+                    `)
+        })
+    })
+
+    function seeOnMap(latitude, longitue) {
+        centersMap.flyTo([latitude, longitue], 12, { duration: 1 });
+    }
+</script>
+}
+
+<main id="coworking-center-index">
+    <h2>Coworking Centers</h2>
+    @* <a asp-action="Create" class="btn btn-primary">+ Create New</a> *@
+
+    <section id="map-section" aria-label="Map of all coworking centers">
+        <div id="centers-map" style="height: 400px;"></div>
+    </section>
+
+    <!-- pagination -->
+    <section id="pagination-section">
+        @Html.ActionLink("back", "Index", "CoworkingCenter", new { PageNumber = Math.Max(Model.Pagination.PageNumber - 1, 1), PageSize = Model.Pagination.PageSize })
+        @for (int i = 1; i <= pageCount; i++)
+        {
+            if (i == Model.Pagination.PageNumber) 
+            {
+                <u><b>@Html.ActionLink(i.ToString(), "Index", "CoworkingCenter", new { PageNumber = i, PageSize = Model.Pagination.PageSize })</b></u>
+            }
+            else
+            {
+                @Html.ActionLink(i.ToString(), "Index", "CoworkingCenter", new { PageNumber = i, PageSize = Model.Pagination.PageSize })
+            }
+        }
+        @Html.ActionLink("next", "Index", "CoworkingCenter", new { PageNumber = Math.Min(Model.Pagination.PageNumber + 1, pageCount), PageSize = Model.Pagination.PageSize })
+    </section>
+    
+    @if (Model.CoworkingCenters.Any())
+    {
+        
+        <!-- coworking center cards -->
+        <ul>
+        @foreach (var center in paginatedCoworkingCenters)
+        {
+            <li>
+                <article>
+                    <h3>@center.Name</h3>
+                    <p>@center.Description</p>
+                    <p><strong>Address:</strong> @center.Address.StreetAddress, @center.Address.City.Name, @center.Address.City.Country.Name</p>
+                    <small><s><strong>Location:</strong> @center.Address.Latitude, @center.Address.Longitude</s></small>
+                    <menu class="coworking-center-card-controls">
+                        <a asp-controller="CoworkingCenter" asp-action="Detail" asp-route-id="@center.CoworkingCenterId">View Details</a>
+                        <a href="#map-section" onclick="seeOnMap(@center.Address.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture), @center.Address.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture))">See on map</a>
+                    </menu>
+                </article>
+            </li>
+        }
+        </ul>
+    }
+    else
+    {
+        <p>Sorry, there are no coworking centers available.</p>
+    }
+</main>
+
+
+@section Styles {
+<style>
+#coworking-center-index {
+    display: flex;
+    flex-direction: column;
+
+    #pagination-section {
+        display: flex;
+        align-items: center;  
+        gap: 0.75rem;
+        margin-top: 0.75rem;    
+        margin-left: auto;
+
+        a {
+            text-decoration: none;
+            @* padding: 0.25rem 0.5rem; *@
+            @* border: 1px solid #ccc; *@
+        }
+    }
+
+    ul {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        list-style: none;
+        padding: 0;
+        row-gap: 0.5rem;
+        column-gap: 0.5rem;
+    }
+
+    ul li {
+        margin-block: 0.5rem;
+    }
+
+    ul li article {
+        display: flex;
+        flex-direction: column;
+
+        border: 1px solid gray;
+        padding: 0.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        height: 100%;
+        
+        h2, h3, h4 {
+            color: black;
+        }
+
+        p {
+            color: black;
+        }
+
+        .coworking-center-card-controls {
+            margin-top: auto;  /* push to bottom */ 
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+    }
+
+
+    ul li article:hover {
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+}
+</style>
+}

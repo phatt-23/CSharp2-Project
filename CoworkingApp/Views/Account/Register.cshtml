@@ -1,0 +1,69 @@
+@model CoworkingApp.Models.DTOModels.Auth.UserRegisterRequestDto
+
+@{
+    ViewBag.Title = "Register";
+    Layout = "_Layout";
+}
+
+
+<h2>Register</h2>
+
+<form method="post" asp-action="Register">
+    <div class="field-row">
+        <label asp-for="Email"></label>
+        <input asp-for="Email" type="email" />
+        <span asp-validation-for="Email" class="field-error"></span>
+    </div>
+
+    <div class="field-row">
+        <label asp-for="Password"></label>
+        <input asp-for="Password" type="password" />
+        <span asp-validation-for="Password" class="field-error"></span>
+    </div>
+
+    <div class="field-row">
+        <label asp-for="ConfirmPassword">Confirm Password</label>
+        <input asp-for="ConfirmPassword" type="password" />
+        <span asp-validation-for="ConfirmPassword" class="field-error"></span>
+    </div>
+
+    <div class="form-controls">
+        <a asp-action="Login">I already have an account</a>
+        <button type="submit">Register</button>
+    </div>
+</form>
+
+
+
+@section Styles { 
+<style>
+.field-row {
+    display: flex;
+    align-items: center;
+    margin-block: 1rem;
+}    
+
+.field-row label {
+    flex: 0 0 16rem;            /* fixed width for labels */
+    margin-right: 0.5rem;
+}
+
+.field-row input {
+    flex: 1;                   /* take up remaining space */
+    margin-right: 0.5rem;
+}
+
+.field-error {
+    color: #c00;               /* red for errors */
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+
+.form-controls {
+    display: flex;
+    justify-content: space-between;
+    text-align: right;
+    margin-top: 1rem;
+}
+</style>
+}

@@ -1,0 +1,61 @@
+@model CoworkingApp.Models.ViewModels.ReservationCreateGetViewModel;
+
+@{
+    ViewBag.Title = "title";
+    Layout = "_Layout";
+}
+
+<h2>New reservation</h2>
+
+@if (ViewData.ModelState.Values.Any(v => v.Errors.Count > 0))
+{
+    <div class="alert alert-danger">
+        <h3>Error</h3>
+        <ul>
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <li>@error.ErrorMessage</li>
+            }
+        </ul>
+    </div>
+}
+
+<a asp-action="Index">Go back to index</a>
+
+<form method="post" asp-action="Create">
+    <div>
+        <label asp-for="@Model.Request.WorkspaceId">Workspace</label>
+        <select asp-for="@Model.Request.WorkspaceId">
+            <option value="">-- select workspace --</option>
+            @foreach(var ws in Model.Workspaces)
+            {
+                <option value="@ws.WorkspaceId">@ws.Name</option>
+            }
+        </select>
+        <span asp-validation-for="@Model.Request.WorkspaceId"></span>
+    </div>
+   
+    <div>
+        <label asp-for="@Model.Request.StartTime">Start time</label>
+        <input 
+            type="datetime-local" 
+            asp-for="@Model.Request.StartTime" 
+            value="@Model.Request.StartTime.ToString("yyyy-MM-ddTHH:mm")"
+            />
+        <span asp-validation-for="@Model.Request.StartTime"></span>
+    </div>
+    
+    <div>
+        <label asp-for="@Model.Request.EndTime">End time</label>
+        <input 
+            type="datetime-local" 
+            asp-for="@Model.Request.EndTime" 
+            value="@Model.Request.EndTime.ToString("yyyy-MM-ddTHH:mm")"
+            />
+        <span asp-validation-for="@Model.Request.EndTime"></span>
+    </div>
+    
+    <button type="submit">Create</button>
+</form>
+
+

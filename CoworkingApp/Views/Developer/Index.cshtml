@@ -1,0 +1,81 @@
+@{
+    Layout = "_Layout";
+    ViewBag.Title = "API Documentation";
+}
+
+<main id="api-docs-page">
+<action>
+    <h2>API</h2>
+    <p>
+        We don't have an API documentation yet :(
+        
+
+        You can try out our api <a href="#api-docs-endpoint-showcase">endpoint</a> 
+        that will tell you all of our available endoints 
+        their http verb, body parameters and authorization level.
+    </p>
+</action>
+<hr/>
+<article>
+    <h3 id="#api-docs-endpoint-showcase">
+        API Documentation Endpoints
+    </h3>
+
+    <p>
+        The public document is available through this endpoint: <br/>
+        <code>https://[this-website]/api/docs</code><br/>
+        Note that this will return all <b>public</b> API endpoints.
+
+        <br/>
+        <br/>
+
+        If you want administator endpoints, they are available through this endopoint: <br/> 
+        <code>https://[this-website]/api/docs-admin</code><br/>
+        though <b>you must be authorized</b> to get back a successful response.
+    </p>
+
+    <h4>Summary</h4>
+    <table>
+        <thead>
+            <th>route</th>
+            <th>administator authorization required</th>
+            <th>response format</th>
+        </thead>
+        <tbody>
+            <tr>
+                <td>/api/docs</td>
+                <td>no</td>
+                <td>text/json</td>
+            </tr>
+            <tr>
+                <td>/api/docs/admin</td>
+                <td>yes</td>
+                <td>application/json</td>
+            </tr>
+        </tbody>
+    </table>
+</article>    
+</main>
+
+@section Styles {
+<style>
+#api-docs-page {
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+    td {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+    }
+
+    th {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+    }
+}
+</style>
+}
