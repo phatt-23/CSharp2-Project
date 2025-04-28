@@ -1,4 +1,6 @@
 using AutoMapper;
+using CoworkingApp.Models.DtoModels;
+using CoworkingApp.Services;
 using CoworkingApp.Types;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,11 +25,13 @@ public class AdminWorkspacePricingApiController
 {
     [HttpGet]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<IEnumerable<AdminWorkspacePricingDto>>> GetWorkspacePricingsAsync([FromQuery] WorkspacePricingQueryRequestDto request)
+    public async 
+        Task<ActionResult<IEnumerable<AdminWorkspacePricingDto>>> 
+        GetWorkspacePricingsAsync([FromQuery] WorkspacePricingQueryRequestDto request)
     {
         try
         {
-            var pricings = await pricingService.GetPricingsAsync(request);
+            var pricings = await pricingService.GetPricings(request);
             var pricingDtos = mapper.Map<IEnumerable<WorkspacePricingDto>>(pricings);
             return Ok(pricingDtos);
         }
@@ -43,7 +47,7 @@ public class AdminWorkspacePricingApiController
     {
         try
         {
-            var pricing = await pricingService.CreateWorkspacePricingAsync(request);
+            var pricing = await pricingService.CreatePricing(request);
             return Ok(pricing);
         }
         catch (Exception e)

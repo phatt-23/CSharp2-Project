@@ -57,7 +57,7 @@ public class WorkspaceRepository
 
         if (filter.IncludeLatestPricing)
         {
-            var result = query.Include(x => x.WorkspacePricings).ToList()
+            var result = query.Include(x => x.WorkspacePricings).ToList();
             result.ForEach(w => w.WorkspacePricings = [.. w.WorkspacePricings.OrderByDescending(p => p.ValidFrom).Take(1)]);
 
             return result;

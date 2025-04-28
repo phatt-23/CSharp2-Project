@@ -31,22 +31,23 @@
             <th>End Time</th>
             <th>Price</th>
             <th>Created At</th>
+            <th>Has Taken Place</th>
             <th>Actions</th>
         </thead>
         <tbody>
-        @foreach (var reservation in Model.Where(x => x.IsCancelled == false))
+        @foreach (var reservation in Model.OrderBy(x => x.StartTime))
         {
             <tr>
                 <td><a asp-controller="Workspace" asp-action="Detail" asp-route-id="@reservation.WorkspaceId">@reservation.Workspace.Name</a></td>
                 <td>@reservation.StartTime</td>
                 <td>@reservation.EndTime</td>
-                <td>@reservation.TotalPrice</td>
+                <td>@(reservation.TotalPrice)$</td>
                 <td>@reservation.CreatedAt</td>
+                <td>@(reservation.StartTime >= DateTime.Now ? "No" : "Yes")</td>
                 <td>
-                    <a asp-action="Details" asp-route-id="@reservation.ReservationId">Detail</a>
+                    <a asp-controller="Reservation" asp-action="Detail" asp-route-id="@reservation.ReservationId">Detail</a>
                     <form method="post" asp-action="Cancel" asp-route-id="@reservation.ReservationId">
-                        <button disabled="@(reservation.StartTime >= DateTime.Now ? false : true)" 
-                                type="submit">
+                        <button disabled="@(reservation.StartTime >= DateTime.Now ? false : true)" type="submit">
                             Cancel
                         </button>
                     </form>
@@ -58,26 +59,22 @@
 </page>
 
 @section Styles {
-<style>
-#reservation-index-page {
+    <style>
+        #reservation-index-page table {
+            border-collapse: collapse;
+            width: 100%;
+        }
 
-    table {
-        border-collapse: collapse;
-        width: 100%;
-    }
+        #reservation-index-page th,
+        #reservation-index-page td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
 
-    td {
-        border: 1px solid #dddddd;
-        text-align: left;
-        padding: 8px;
-    }
-
-    th {
-        border: 1px solid #dddddd;
-        text-align: left;
-        padding: 8px;
-    }
-
-}
-</style>
+        #reservation-index-page td form {
+            display: inline;
+            margin-left: 8px; 
+        }
+    </style>
 }

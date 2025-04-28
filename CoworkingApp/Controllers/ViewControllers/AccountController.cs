@@ -1,40 +1,36 @@
-using System.Security.Claims;
-using CoworkingApp.Controllers.APIEndpoints.Public;
-using CoworkingApp.Models.DataModels;
-using CoworkingApp.Models.DTOModels.Auth;
-using CoworkingApp.Models.DTOModels.User;
+using CoworkingApp.Models.DtoModels;
+using CoworkingApp.Models.Exceptions;
 using CoworkingApp.Services;
-using FluentValidation;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CoworkingApp.Controllers.MVC;
+namespace CoworkingApp.Controllers.ViewControllers;
 
-
+[Route("account")]
 public class AccountController
     (
-    IAuthService authService,
-    IUserService userService
-    ) 
+        IAuthService authService,
+        IUserService userService
+    )
     : Controller
 {
-    // Route: GET /login
+    [HttpGet("login")]
     public IActionResult Login()
     {
         return View(new UserLoginRequestDto());
     }
 
-    [HttpPost]
+    [HttpPost("login")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(UserLoginRequestDto request)
     {
-        if (!ModelState.IsValid) return View(request);
+        if (!ModelState.IsValid) 
+            return View(request);
+
         try
         {
-            var tokens = await authService.LoginAsync(request);
-            await authService.StoreCookiesAsync(Response, tokens);
+            var tokens = await authService.LoginUser(request);
+            await authService.StoreCookies(Response, tokens);
             return RedirectToAction("Index", "Home");
         }
         catch (WrongPasswordException ex)
@@ -49,18 +45,19 @@ public class AccountController
         }
     }
 
-    // Route: GET /register
+    [HttpGet("register")]
     public IActionResult Register()
     {
         return View(new UserRegisterRequestDto());
     }
 
-    [HttpPost]
+    [HttpPost("register")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(UserRegisterRequestDto requestDto)
     {
         // check for email uniqueness
-        var users = await userService.GetUsersAsync(new UserQueryRequestDto() { Email = requestDto.Email });
+        var users = await userService.GetUsers(new UserQueryRequestDto() { Email = requestDto.Email });
+
         if (users.Any())
         {
             ModelState.AddModelError("Email", "Email is already taken.");
@@ -73,7 +70,7 @@ public class AccountController
 
         try
         {
-            await authService.RegisterAsync(requestDto);
+            await authService.RegisterUser(requestDto);
             return RedirectToAction("Login");
         }
         catch (Exception ex)
@@ -84,12 +81,11 @@ public class AccountController
         return View(requestDto);
     }
     
-    // Route: POST /logout
     [Authorize]
-    [HttpPost]
+    [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
-        await authService.LogoutAsync(Response);
+        await authService.LogoutUser(Response);
         return RedirectToAction("Index", "Home"); 
     }
 }

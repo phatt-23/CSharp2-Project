@@ -1,6 +1,6 @@
 @using System.Text.Json;
+@using CoworkingApp.Models.DataModels
 @using CoworkingApp.Services;
-@using CoworkingApp.Models.DTOModels;
 @model CoworkingApp.Models.ViewModels.CoworkingCenterIndexViewModel;
 
 @{
@@ -45,7 +45,7 @@
                     <p><strong>${center.AddressDisplayName}</strong></p>
                     <p>${center.Description}</p>
                     <a align='right' href='/coworking-center/${center.CoworkingCenterId}'>View detail</a>
-                    `)
+                `)
         })
     })
 
@@ -82,24 +82,33 @@
     
     @if (Model.CoworkingCenters.Any())
     {
-        
         <!-- coworking center cards -->
         <ul>
-        @foreach (var center in paginatedCoworkingCenters)
-        {
-            <li>
-                <article>
-                    <h3>@center.Name</h3>
-                    <p>@center.Description</p>
-                    <p><strong>Address:</strong> @center.Address.StreetAddress, @center.Address.City.Name, @center.Address.City.Country.Name</p>
-                    <small><s><strong>Location:</strong> @center.Address.Latitude, @center.Address.Longitude</s></small>
-                    <menu class="coworking-center-card-controls">
-                        <a asp-controller="CoworkingCenter" asp-action="Detail" asp-route-id="@center.CoworkingCenterId">View Details</a>
-                        <a href="#map-section" onclick="seeOnMap(@center.Address.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture), @center.Address.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture))">See on map</a>
-                    </menu>
-                </article>
-            </li>
-        }
+            @foreach (var center in paginatedCoworkingCenters)
+            {
+                <li>
+                    <article>
+                        <h3>@center.Name</h3>
+
+                        <p>@center.Description</p>
+
+                        <p><strong>Address:</strong> @center.Address.StreetAddress, @center.Address.City.Name, @center.Address.City.Country.Name</p>
+
+                        @* <small><s><strong>Location:</strong> @center.Address.Latitude, @center.Address.Longitude</s></small> *@
+
+                        <p><strong>Available workspaces:</strong> @(
+                            center.Workspaces
+                                .Where(x => x.WorkspaceHistories.MaxBy(h => h.ChangeAt)!.Status.Type == WorkspaceStatusType.Available)
+                                .Count()
+                        )</p>
+
+                        <menu class="coworking-center-card-controls">
+                            <a asp-controller="CoworkingCenter" asp-action="Detail" asp-route-id="@center.CoworkingCenterId">View Details</a>
+                            <a href="#map-section" onclick="seeOnMap(@center.Address.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture), @center.Address.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture))">See on map</a>
+                        </menu>
+                    </article>
+                </li>
+            }
         </ul>
     }
     else

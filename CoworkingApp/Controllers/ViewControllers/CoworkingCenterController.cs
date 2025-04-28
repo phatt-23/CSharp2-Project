@@ -1,14 +1,12 @@
-// using CoworkingApp.Models.DTOModels;
-
-using CoworkingApp.Models.DTOModels;
-using CoworkingApp.Models.DTOModels.CoworkingCenters;
 using CoworkingApp.Services;
 using CoworkingApp.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using CoworkingApp.Services.Repositories;
+using CoworkingApp.Models.DtoModels;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
-namespace CoworkingApp.Controllers.MVC;
-
+namespace CoworkingApp.Controllers.ViewControllers;
 public interface ICoworkingCenterController
 {
     Task<IActionResult> Index(PaginationRequestDto pagination);
@@ -19,15 +17,21 @@ public interface ICoworkingCenterController
 [Route("coworking-center")]
 public class CoworkingCenterController
     (
-    ICoworkingCenterService coworkingCenterService, 
-    IWorkspaceRepository workspaceRepository
+        ICoworkingCenterService coworkingCenterService,
+        ICoworkingCenterRepository coworkingCenterRepository,
+        IWorkspaceRepository workspaceRepository,
+        IGeocodingService geocodingService
     ) 
     : Controller, ICoworkingCenterController 
 {
     [HttpGet]
     public async Task<IActionResult> Index([FromQuery] PaginationRequestDto pagination)
     {
-        var centers = await coworkingCenterService.GetCoworkingCentersAsync(new ());
+        var centers = await coworkingCenterRepository.GetCenters(new ()
+        {
+            IncludeWorkspaces = true,
+            IncludeAddress = true,
+        });
 
         return View(new CoworkingCenterIndexViewModel {
             CoworkingCenters = centers,
@@ -40,9 +44,9 @@ public class CoworkingCenterController
     {
         try
         {
-            var center = await coworkingCenterService.GetCoworkingCenterByIdAsync(id);
+            var center = await coworkingCenterService.GetCenterById(id);
 
-            var workspaces = await workspaceRepository.GetWorkspacesAsync(new WorkspaceFilter
+            var workspaces = await workspaceRepository.GetWorkspaces(new WorkspaceFilter
             {
                 CoworkingCenterId = center.CoworkingCenterId,
                 IncludeLatestPricing = true,
@@ -59,13 +63,15 @@ public class CoworkingCenterController
         }
     }
     
-    [HttpGet("create")] 
+    [HttpGet("create")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create()
     {
         return View(new CoworkingCenterCreateRequestDto());
     }
     
     [HttpPost("create")] 
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create(CoworkingCenterCreateRequestDto request)
     {
         if (!ModelState.IsValid)
@@ -73,7 +79,14 @@ public class CoworkingCenterController
             return View(request);
         }
 
-        var center = await coworkingCenterService.CreateCoworkingCenterAsync(request);
+        var geocode = geocodingService.GeocodeAsync(request.StreetAddress, request.District, request.City, request.PostalCode, request.Country);
+        if (geocode == null)
+        {
+            return BadRequest("The address could not be validated.");
+        }
+
+        var center = await coworkingCenterService.CreateCenter(request);
+
         return RedirectToAction("Detail", new { id = center.CoworkingCenterId });
     }
 }

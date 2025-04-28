@@ -1,6 +1,6 @@
 using AutoMapper;
 using CoworkingApp.Models.DataModels;
-using CoworkingApp.Models.DTOModels.Reservation;
+using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Models.Exceptions;
 using CoworkingApp.Services.Repositories;
 

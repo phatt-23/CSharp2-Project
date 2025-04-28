@@ -1,4 +1,4 @@
-namespace CoworkingApp.Models.DTOModels.WorkspaceStatus;
+namespace CoworkingApp.Models.DtoModels;
 
 /// Data DTO
 public class WorkspaceStatusDto

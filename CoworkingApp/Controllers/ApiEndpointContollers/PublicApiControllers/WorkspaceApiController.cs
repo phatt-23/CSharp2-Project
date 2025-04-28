@@ -1,32 +1,32 @@
 using AutoMapper;
-using CoworkingApp.Models.DataModels;
-using CoworkingApp.Models.DTOModels.Workspace;
+using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Models.Exceptions;
 using CoworkingApp.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CoworkingApp.Controllers.APIEndpoints.Public;
+namespace CoworkingApp.Controllers.ApiEndpointContollers.PublicApiControllers;
 
 internal interface IWorkspaceApi
 {
-    Task<ActionResult<IEnumerable<WorkspaceDto>>> GetWorkspacesAsync([FromQuery] WorkspaceQueryRequestDto request);
-    Task<ActionResult<WorkspaceDto?>> GetWorkspacesByIdAsync(int id);
+    Task<ActionResult<IEnumerable<WorkspaceDto>>> GetWorkspaces([FromQuery] WorkspaceQueryRequestDto request);
+    Task<ActionResult<WorkspaceDto?>> GetWorkspacesById(int id);
 }
 
 
 [ApiController]
 [Route("/api/workspace")]
-public class WorkspaceApiController(
-    IWorkspaceService workspacesService,
-    IMapper mapper
-    ) : Controller, IWorkspaceApi
+public class WorkspaceApiController
+    (
+        IWorkspaceService workspacesService,
+        IMapper mapper
+    ) 
+    : Controller, IWorkspaceApi
 {
     /// PUBLIC - Get filtered workspaces.
     [HttpGet] 
-    public async Task<ActionResult<IEnumerable<WorkspaceDto>>> GetWorkspacesAsync([FromQuery] WorkspaceQueryRequestDto request)
+    public async Task<ActionResult<IEnumerable<WorkspaceDto>>> GetWorkspaces([FromQuery] WorkspaceQueryRequestDto request)
     {
-        var workspaces = await workspacesService.GetWorkspacesAsync(request);
+        var workspaces = await workspacesService.GetWorkspaces(request);
         
         var totalCount = workspaces.Count(); 
         var workspacePage = Pagination.Paginate(workspaces, request.PageNumber, request.PageSize);
@@ -45,11 +45,11 @@ public class WorkspaceApiController(
 
     /// PUBLIC - Get a workspace by id.
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<WorkspaceDto?>> GetWorkspacesByIdAsync(int id)
+    public async Task<ActionResult<WorkspaceDto?>> GetWorkspacesById(int id)
     { 
         try
         {
-            var workspace = await workspacesService.GetWorkspaceByIdAsync(id);
+            var workspace = await workspacesService.GetWorkspaceById(id);
             var response = mapper.Map<WorkspaceDto>(workspace);
             return Ok(response);
         }
@@ -66,8 +66,8 @@ public class WorkspaceApiController(
     {
         try
         {
-            var workspace = await workspacesService.GetWorkspaceByIdAsync(id);
-            var histories = await workspacesService.GetWorkspaceHistoryAsync(id);
+            var workspace = await workspacesService.GetWorkspaceById(id);
+            var histories = await workspacesService.GetWorkspaceHistory(id);
 
             var workspaceDto = mapper.Map<WorkspaceDto>(workspace);
             var historyDtos = mapper.Map<IEnumerable<WorkspaceHistoryDto>>(histories);

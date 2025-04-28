@@ -1,27 +1,27 @@
-﻿namespace CoworkingApp.Models.DTOModels;
+﻿namespace CoworkingApp.Models.DtoModels;
 
 public class ApiEndpointDescription
 {
-    public string HttpMethod { get; set; }
-    public string Route { get; set; }
+    public required string HttpMethod { get; set; }
+    public required string Route { get; set; }
     public bool RequiresAuthentication { get; set; }
     public bool AllowsAnonymous { get; set; }
     public List<ApiParameterDescription> Parameters { get; set; } = new();
-    public string ReturnType { get; set; }
+    public required string ReturnType { get; set; }
 }
 
 public class ApiParameterDescription
 {
-    public string Name { get; set; }
-    public string Type { get; set; }
+    public required string Name { get; set; }
+    public required string Type { get; set; }
     public bool IsComplexType { get; set; }
-    public List<ApiFieldDescription> Fields { get; set; } = new();
+    public List<ApiFieldDescription> Fields { get; set; } = [];
 }
 
 public class ApiFieldDescription
 {
-    public string Name { get; set; }
-    public string Type { get; set; }
+    public required string Name { get; set; }
+    public required string Type { get; set; }
     public bool IsComplexType { get; set; }
-    public List<ApiFieldDescription> SubFields { get; set; } = new();
+    public List<ApiFieldDescription> SubFields { get; set; } = [];
 }

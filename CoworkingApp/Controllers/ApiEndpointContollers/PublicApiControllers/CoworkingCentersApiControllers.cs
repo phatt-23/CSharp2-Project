@@ -1,19 +1,19 @@
 using AutoMapper;
-using CoworkingApp.Data;
-using CoworkingApp.Models.DTOModels.CoworkingCenters;
+using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Models.Exceptions;
 using CoworkingApp.Services;
 using CoworkingApp.Types;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CoworkingApp.Controllers.APIEndpoints.Public;
+namespace CoworkingApp.Controllers.ApiEndpointContollers.PublicApiControllers;
 
 public interface ICoworkingCentersApi
 {
     // GET /api/coworking-center
-    Task<ActionResult<ICollection<CoworkingCenterDto>>> Get([FromQuery] CoworkingCenterQueryRequestDto request);
+    Task<ActionResult<CoworkingCenterQueryResponseDto>> GetCenters([FromQuery] CoworkingCenterQueryRequestDto request);
+
     // GET /api/coworking-center/{id}
-    Task<ActionResult<CoworkingCenterDto>> GetById(int id);
+    Task<ActionResult<CoworkingCenterDto>> GetCenterById(int id);
 }
 
 [ApiController]
@@ -27,16 +27,16 @@ public class CoworkingCentersApiController
     : Controller, ICoworkingCentersApi
 {
     [HttpGet]
-    public async Task<ActionResult<ICollection<CoworkingCenterDto>>> Get([FromQuery] CoworkingCenterQueryRequestDto request)
+    public async Task<ActionResult<CoworkingCenterQueryResponseDto>> GetCenters([FromQuery] CoworkingCenterQueryRequestDto request)
     {
-        var centers = await coworkingCenterService.GetCoworkingCentersAsync(request);
+        var centers = await coworkingCenterService.GetCenters(request);
 
         var totalCount = centers.Count();
         
         var paginatedCenters = Pagination.Paginate(centers, request.PageNumber, request.PageSize);
         var centerDtos = mapper.Map<IEnumerable<CoworkingCenterDto>>(paginatedCenters);
         
-        var response = new CoworkingCentersResponseDto
+        var response = new CoworkingCenterQueryResponseDto
         {
             Centers = centerDtos,
             TotalCount = totalCount,
@@ -48,15 +48,12 @@ public class CoworkingCentersApiController
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<CoworkingCenterDto>> GetById(int id)
+    public async Task<ActionResult<CoworkingCenterDto>> GetCenterById(int id)
     {
         try
         {
-            var center = await coworkingCenterService.GetCoworkingCenterByIdAsync(id);
-
-            var centerDto = mapper.Map<CoworkingCenterDto>(center);
-            
-            return Ok(centerDto);
+            var center = await coworkingCenterService.GetCenterById(id);
+            return Ok(mapper.Map<CoworkingCenterDto>(center));
         }
         catch (NotFoundException ex)
         {

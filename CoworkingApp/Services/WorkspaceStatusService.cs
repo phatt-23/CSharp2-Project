@@ -1,42 +1,42 @@
 using CoworkingApp.Models.DataModels;
-using CoworkingApp.Models.DTOModels.WorkspaceStatus;
+using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Services.Repositories;
 
 namespace CoworkingApp.Services;
 
 public interface IWorkspaceStatusService
 {
-    Task<IEnumerable<WorkspaceStatus>> GetWorkspaceStatusesAsync(WorkspaceStatusQueryRequestDto request);
-    Task<WorkspaceStatus> GetWorkspaceStatusByIdAsync(int workspaceStatusId);
+    Task<IEnumerable<WorkspaceStatus>> GetStatuses(WorkspaceStatusQueryRequestDto request);
+    Task<WorkspaceStatus> GetStatusById(int workspaceStatusId);
 }
 
 
 public class WorkspaceStatusService
     (
-    IWorkspaceStatusRepository statusRepository
+        IWorkspaceStatusRepository statusRepository
     ) 
     : IWorkspaceStatusService
 {
-    public async Task<IEnumerable<WorkspaceStatus>> GetWorkspaceStatusesAsync(WorkspaceStatusQueryRequestDto request)
+    public async Task<IEnumerable<WorkspaceStatus>> GetStatuses(WorkspaceStatusQueryRequestDto request)
     { 
-        var ss = await statusRepository.GetWorkspaceStatusAsync(new WorkspaceStatusFilter
+        var statuses = await statusRepository.GetStatuses(new WorkspaceStatusFilter
         { 
             Id = request.Id,
             LikeName = request.Name
         });
 
-       return ss;
+        return statuses;
     }
 
-    public async Task<WorkspaceStatus> GetWorkspaceStatusByIdAsync(int workspaceStatusId)
+    public async Task<WorkspaceStatus> GetStatusById(int workspaceStatusId)
     {
-        var ss = await statusRepository.GetWorkspaceStatusAsync(new WorkspaceStatusFilter
+        var statuses = await statusRepository.GetStatuses(new WorkspaceStatusFilter
         { 
             Id = workspaceStatusId,
             IncludeWorkspaces = true
         });
 
-        return ss.Single();
+        return statuses.Single();
     }
 
 }

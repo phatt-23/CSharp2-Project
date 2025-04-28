@@ -23,7 +23,18 @@ public class AddressRepository
 {
     public async Task<Address> AddAddress(Address address)
     {
+        if (address.City == null)
+        {
+            throw new ArgumentNullException(nameof(address.City), "City cannot be null");
+        }
+
+        if (address.City.Country == null)
+        {
+            throw new ArgumentNullException(nameof(address.City.Country), "Country cannot be null");
+        }
+
         var addedAddress = await context.Addresses.AddAsync(address);
+        await context.SaveChangesAsync();
         return addedAddress.Entity;
     }
 
@@ -47,11 +58,11 @@ public class AddressFilter : FilterBase
 
     [CompareTo(nameof(Address.StreetAddress))]
     [StringFilterOptions(StringFilterOption.Contains)]
-    public string? LikeStreetAddress { get; set; }
+    public string? StreetAddressContains { get; set; }
 
     [CompareTo(nameof(Address.District))]
     [StringFilterOptions(StringFilterOption.Contains)]
-    public string? LikeDistrict { get; set; }
+    public string? DistrictContains { get; set; }
 
     [CompareTo(nameof(Address.CityId))]
     public int? CityId { get; set; }

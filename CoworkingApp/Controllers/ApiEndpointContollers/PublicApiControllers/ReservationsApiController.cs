@@ -1,12 +1,12 @@
 using System.Security.Claims;
 using AutoMapper;
-using CoworkingApp.Models.DTOModels.Reservation;
+using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Models.Exceptions;
 using CoworkingApp.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CoworkingApp.Controllers.APIEndpoints.Public;
+namespace CoworkingApp.Controllers.ApiEndpointContollers.PublicApiControllers;
 
 internal interface IReservationsApi
 {
@@ -16,13 +16,14 @@ internal interface IReservationsApi
     Task<IActionResult> CancelReservationAsync(int id);
 }
 
-
 [ApiController]
 [Route("api/reservation")]
-public class ReservationsApiController(
-    IReservationService reservationService,
-    IMapper mapper
-    ) : Controller, IReservationsApi
+public class ReservationsApiController
+    (
+        IReservationService reservationService,
+        IMapper mapper
+    ) 
+    : Controller, IReservationsApi
 {
     [Authorize]
     [HttpGet]
@@ -36,7 +37,7 @@ public class ReservationsApiController(
         // TODO: Replace user id:int with uuid:string
         request.CustomerId = int.Parse(userId);
         
-        var reservations = await reservationService.GetReservationsAsync(request);
+        var reservations = await reservationService.GetReservations(request);
 
         reservations = reservations.Where(x => x.IsCancelled == false);
         
@@ -62,7 +63,7 @@ public class ReservationsApiController(
     {
         try
         {
-            var reservation = await reservationService.GetReservationByIdAsync(id);
+            var reservation = await reservationService.GetReservationById(id);
 
             if (reservation.IsCancelled)
                 return BadRequest("Reservation is already cancelled.");
@@ -88,7 +89,7 @@ public class ReservationsApiController(
         try
         {
             var customerId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
-            var reservation = await reservationService.CreateReservationAsync(int.Parse(customerId), request);
+            var reservation = await reservationService.CreateReservation(int.Parse(customerId), request);
             var reservationDto = mapper.Map<ReservationDto>(reservation);
             return Ok(reservationDto);
         }
@@ -108,7 +109,7 @@ public class ReservationsApiController(
     {
         try
         {
-            var reservation = await reservationService.GetReservationByIdAsync(id);
+            var reservation = await reservationService.GetReservationById(id);
             
             if (reservation.IsCancelled)
                 return BadRequest("Reservation is already cancelled.");
@@ -118,7 +119,7 @@ public class ReservationsApiController(
             if (userId != reservation.CustomerId.ToString())
                 return Unauthorized("Cannot cancel reservation not belonging to your account.");
 
-            var canceledReservation = await reservationService.CancelReservationAsync(reservation.ReservationId);
+            var canceledReservation = await reservationService.CancelReservation(reservation.ReservationId);
             var reservationDto = mapper.Map<ReservationDto>(canceledReservation);
             return Ok(reservationDto);
         }

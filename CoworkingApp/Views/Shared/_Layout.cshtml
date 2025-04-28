@@ -1,4 +1,5 @@
-﻿<!DOCTYPE html>
+﻿@using System.Security.Claims
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -17,51 +18,51 @@
         html {
             scroll-behavior: smooth;
             scroll-padding-top: 50px;
-            @* font-family: arial, sans-serif; *@
+            font-family: arial, sans-serif;
         }
 
         #layout-body {
             display: flex;
             flex-direction: column;
             margin: 0 auto;
-            max-width: 800px;
+            max-width: 1000px;
             gap: 1em;
+        }
 
-            #layout-nav {
-                display: flex;
+        #layout-body 
+        #layout-nav {
+            display: flex;
+            position: sticky;
+            top: 0;
+            overflow: hidden;
+            z-index: 1200;  /* Leaflet's max z-index is 1000 */
+            align-items: center;
+            background-color: lightgray;
+            justify-content: space-between;
+            padding-inline: 1em;
+        }
+
+        #layout-body
+        #layout-nav 
+        .nav-list {
+            display: flex;
+        }
             
-                position: sticky;
-                top: 0;
-                overflow: hidden;
+        #layout-body 
+        #layout-nav 
+        .nav-list 
+        .nav-item {
+            display: inline-block;
+            margin-left: 1rem;
+        }
 
-                z-index: 1200;  /* Leaflet's max z-index is 1000 */
-
-                align-items: center;
-                background-color: lightgray;
-                justify-content: space-between;
-                padding-inline: 1em;
-
-                .nav-list {
-                    display: flex;
-
-                    .nav-item {
-                        display: inline-block;
-                        margin-left: 1rem;
-                    }
-                }
-            }
-
-            #layout-main {
-
-            }
-
-            #layout-footer {
-                display: flex;
-                flex-direction: row;
-                align-content: center;
-                justify-content: space-between;
-                margin-bottom: 1em;
-            }
+        #layout-body
+        #layout-footer {
+            display: flex;
+            flex-direction: row;
+            align-content: center;
+            justify-content: space-between;
+            margin-bottom: 1em;
         }
     </style>
     @* For local styling of views. This pastes whatever is in the Styles section. *@
@@ -79,7 +80,7 @@
             @if (User.Identity != null && User.Identity.IsAuthenticated)
             {
                 <li class="nav-item">
-                    <a asp-controller="Home" asp-action="Dashboard">dashboard</a>
+                    <a asp-controller="Home" asp-action="Dashboard">@User.FindFirst(ClaimTypes.Email)?.Value</a>
                 </li>
                 <li class="nav-item">
                     <form method="post" asp-action="Logout" asp-controller="Account">

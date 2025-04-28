@@ -1,6 +1,6 @@
 using AutoMapper;
 using CoworkingApp.Models.DataModels;
-using CoworkingApp.Models.DTOModels.User;
+using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Services;
 using CoworkingApp.Types;
 using Microsoft.AspNetCore.Mvc;
@@ -25,11 +25,11 @@ public class AdminUserApiController
     : Controller, IAdminUserApi
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<UserDto>>> GerUsers([FromQuery] UserQueryRequestDto? request = null)
+    public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers([FromQuery] UserQueryRequestDto? request = null)
     {
         try
         {
-            var users = await userService.GetUsersAsync(request ?? new UserQueryRequestDto());
+            var users = await userService.GetUsers(request ?? new UserQueryRequestDto());
             var userDtos = mapper.Map<IEnumerable<UserDto>>(users);
             return Ok(userDtos);
         }
@@ -55,11 +55,11 @@ public class AdminUserApiController
     }
 
     [HttpDelete("{id:int}")]
-    public async Task<ActionResult<UserDto>> RemoveUserAsync(int id)
+    public async Task<ActionResult<UserDto>> RemoveUser(int id)
     {
         try
         {
-            var user = await userService.RemoveUserAsync(id);
+            var user = await userService.RemoveUser(id);
             var userDto = mapper.Map<UserDto>(user);
             return Ok(userDto);
         }

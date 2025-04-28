@@ -1,7 +1,7 @@
 using CoworkingApp.Models.DataModels;
 using CoworkingApp.Services;
 
-namespace CoworkingApp.Models.DTOModels.User;
+namespace CoworkingApp.Models.DtoModels;
 
 //////////////////////////////////////////////////////
 // Data DTOs

@@ -1,3 +1,4 @@
+namespace CoworkingApp.Models.DtoModels;
 
 public class WorkspaceHistoryDto
 {

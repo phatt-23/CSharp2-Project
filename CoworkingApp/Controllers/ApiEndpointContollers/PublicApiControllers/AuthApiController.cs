@@ -1,29 +1,27 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
-using CoworkingApp.Models.DTOModels.Auth;
-using CoworkingApp.Models.DTOModels.User;
+using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Models.Exceptions;
 using CoworkingApp.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 
-namespace CoworkingApp.Controllers.APIEndpoints.Public;
+namespace CoworkingApp.Controllers.ApiEndpointContollers.PublicApiControllers;
 
 [ApiController]
 [Route("/api/auth")]
-public class AuthApiController(
-    IAuthService authService
-    ) : Controller
+public class AuthApiController
+    (
+        IAuthService authService
+    ) 
+    : Controller
 {
     [HttpPost("register")]
     public async Task<ActionResult<UserDto>> Register([FromBody]UserRegisterRequestDto request)
     {
         try
         {
-            var userDto = await authService.RegisterAsync(request);
+            var userDto = await authService.RegisterUser(request);
             return Ok(userDto);
         }
         catch (Exception ex)
@@ -37,9 +35,9 @@ public class AuthApiController(
     {
         try
         {
-            var tokenResponseDto = await authService.LoginAsync(request);
+            var tokenResponseDto = await authService.LoginUser(request);
 
-            await authService.StoreCookiesAsync(Response, tokenResponseDto); // For web users, storing in cookies.
+            await authService.StoreCookies(Response, tokenResponseDto); // For web users, storing in cookies.
             
             return Ok(tokenResponseDto); // For other users, handle manually.
             // return Ok(new { message = "Login successful"});
@@ -68,7 +66,7 @@ public class AuthApiController(
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
-        await authService.LogoutAsync(Response);
+        await authService.LogoutUser(Response);
         return Ok(new { message = "Logged out successfully" });
     }
 
@@ -83,15 +81,15 @@ public class AuthApiController(
                 return Unauthorized(new { message = "No refresh token found or is expired" });
 
             // get the users id
-            var userId = await authService.ExtractUserIdFromTokenAsync(refreshToken);
+            var userId = await authService.ExtractUserIdFromToken(refreshToken);
             if (userId == null)
                 return Unauthorized(new { message = "Invalid refresh token" });
             
             // refresh and get the new cookies
-            var tokenResponseDto = await authService.RefreshTokensAsync(userId, refreshToken);
+            var tokenResponseDto = await authService.RefreshTokens(userId, refreshToken);
     
             // store the new cookies
-            await authService.StoreCookiesAsync(Response, tokenResponseDto); // For web users, storing token in cookies.
+            await authService.StoreCookies(Response, tokenResponseDto); // For web users, storing token in cookies.
             
             return Ok(tokenResponseDto);   // For non-browser users, they handle it themselves.
         }
@@ -105,7 +103,6 @@ public class AuthApiController(
         }
     }
     
-    
     ///////////////////////////////////////////////////////////
     /////// TEST ENDPOINTS ////////////////////////////////////
     ///////////////////////////////////////////////////////////
@@ -117,7 +114,6 @@ public class AuthApiController(
         var email = User.Claims.First(c => c.Type == ClaimTypes.Email).Value;
         return Ok($"Hi, {email}, you are authenticated!");
     }
-
 
     [HttpGet("admin-only")]
     [Authorize(Roles = "Admin")]

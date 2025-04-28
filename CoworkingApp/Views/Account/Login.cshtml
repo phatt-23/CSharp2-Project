@@ -1,4 +1,5 @@
-@model CoworkingApp.Models.DTOModels.Auth.UserLoginRequestDto
+@using CoworkingApp.Models.DtoModels
+@model UserLoginRequestDto
 
 @{
     ViewBag.Title = "Login";
@@ -10,13 +11,13 @@
 <form method="post" asp-action="Login">
     <div class="field-row">
         <label asp-for="Email"></label>
-        <input asp-for="Email" type="email" />
+        <input asp-for="Email" type="email" required />
         <span class="field-error" asp-validation-for="Email"></span>
     </div>
 
     <div class="field-row">
         <label asp-for="Password"></label>
-        <input asp-for="Password" type="password" />
+        <input asp-for="Password" type="password" required />
         <span class="field-error" asp-validation-for="Password"></span>
     </div>
 
@@ -26,8 +27,6 @@
         <button type="submit">Sign In</button>
     </div>
 </form>
-
-
 
 @section Styles { 
 <style>

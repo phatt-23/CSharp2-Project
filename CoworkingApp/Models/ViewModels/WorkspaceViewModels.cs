@@ -1,6 +1,5 @@
 using CoworkingApp.Models.DataModels;
-using CoworkingApp.Models.DTOModels;
-using CoworkingApp.Models.DTOModels.Reservation;
+using CoworkingApp.Models.DtoModels;
 
 namespace CoworkingApp.Models.ViewModels;
 

@@ -1,5 +1,5 @@
 using CoworkingApp.Models.DataModels;
-using CoworkingApp.Models.DTOModels.Workspace;
+using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Models.Exceptions;
 using CoworkingApp.Services.Repositories;
 
@@ -115,7 +115,7 @@ public class WorkspaceService
         
         var workspace = workspaces.Single();
 
-        var statuses = await statusRepository.GetStatus(new WorkspaceStatusFilter { LikeName = statusType.ToString() });
+        var statuses = await statusRepository.GetStatuses(new WorkspaceStatusFilter { LikeName = statusType.ToString() });
         var status = statuses.Single();
        
         await workspaceRepository.UpdateWorkspace(workspace);

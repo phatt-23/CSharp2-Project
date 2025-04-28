@@ -10,7 +10,7 @@ namespace CoworkingApp.Services.Repositories;
 
 public interface IWorkspaceStatusRepository
 {
-    Task<IEnumerable<WorkspaceStatus>> GetStatus(WorkspaceStatusFilter filter);
+    Task<IEnumerable<WorkspaceStatus>> GetStatuses(WorkspaceStatusFilter filter);
 }
 
 public class WorkspaceStatusRepository
@@ -19,7 +19,7 @@ public class WorkspaceStatusRepository
     ) 
     : IWorkspaceStatusRepository
 {
-    public Task<IEnumerable<WorkspaceStatus>> GetStatus(WorkspaceStatusFilter filter)
+    public Task<IEnumerable<WorkspaceStatus>> GetStatuses(WorkspaceStatusFilter filter)
     {
         var query = context.WorkspaceStatuses.ApplyFilter(filter);
 

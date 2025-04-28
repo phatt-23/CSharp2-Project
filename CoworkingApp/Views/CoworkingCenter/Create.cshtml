@@ -1,4 +1,5 @@
-@model CoworkingApp.Models.DTOModels.CoworkingCenters.CoworkingCenterCreateRequestDto
+@model CoworkingCenterCreateRequestDto;
+@using CoworkingApp.Models.DtoModels;
 
 <title>Coworking Center - Create</title>
 
@@ -6,24 +7,39 @@
 
 <form method="post" asp-action="Create">
     <div>
-        <label asp-for="Name"></label>
-        <input asp-for="Name" type="text"/>
-        <span asp-validation-for="Name"></span>
+        <label asp-for="@Model.Name"></label>
+        <input asp-for="@Model.Name" type="text"/>
+        <span asp-validation-for="@Model.Name"></span>
     </div>
     <div>
-        <label asp-for="Description"></label>
-        <input asp-for="Description" type="text"/>
-        <span asp-validation-for="Description"></span>
+        <label asp-for="@Model.Description"></label>
+        <input asp-for="@Model.Description" type="text"/>
+        <span asp-validation-for="@Model.Description"></span>
     </div>
     <div>
-        <label asp-for="Latitude"></label>
-        <input asp-for="Latitude" type="number"/>
-        <span asp-validation-for="Latitude"></span>
+        <label asp-for="@Model.StreetAddress"></label>
+        <input asp-for="@Model.StreetAddress" type="text"/>
+        <span asp-validation-for="@Model.StreetAddress"></span>
     </div>
     <div>
-        <label asp-for="Longitude"></label>
-        <input asp-for="Longitude" type="number"/>
-        <span asp-validation-for="Longitude"></span>
+        <label asp-for="@Model.District"></label>
+        <input asp-for="@Model.District" type="text"/>
+        <span asp-validation-for="@Model.District"></span>
+    </div>
+    <div>
+        <label asp-for="@Model.PostalCode"></label>
+        <input asp-for="@Model.PostalCode" type="text"/>
+        <span asp-validation-for="@Model.PostalCode"></span>
+    </div>
+    <div>
+        <label asp-for="@Model.City"></label>
+        <input asp-for="@Model.City" type="text"/>
+        <span asp-validation-for="@Model.City"></span>
+    </div>
+    <div>
+        <label asp-for="@Model.Country"></label>
+        <input asp-for="@Model.Country" type="text"/>
+        <span asp-validation-for="@Model.Country"></span>
     </div>
     
     <button type="submit">Create</button>

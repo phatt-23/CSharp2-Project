@@ -21,7 +21,7 @@ public class TokenRefreshMiddleware(RequestDelegate next)
             var refreshToken = context.Request.Cookies["refreshToken"];
             if (!string.IsNullOrEmpty(refreshToken)) // Refresh token still not expired
             {
-                var success = await authService.TryRefreshTokenAsync(context);
+                var success = await authService.TryRefreshToken(context);
 
                 if (success)
                 {

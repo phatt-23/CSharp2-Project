@@ -1,0 +1,117 @@
+@model CoworkingApp.Models.ViewModels.ReservationDetailViewModel
+
+@{
+    ViewBag.Title = "Reservation Detail";
+    Layout = "_Layout";
+
+    // Determine if the reservation has already taken place
+    bool hasTakenPlace = Model.Reservation.EndTime < DateTime.Now;
+}
+
+<h2>Your Reservation</h2>
+
+<a asp-controller="Home" asp-action="Dashboard" class="btn btn-secondary">Go to dashboard</a>
+
+<section class="reservation-details">
+    <h3>Reservation Information</h3>
+    <dl>
+        <dt>Workspace</dt>
+        <dd>@Model.Workspace.Name</dd>
+
+        <dt>Start Time</dt>
+        <dd>@Model.Reservation.StartTime.ToString("f")</dd>
+
+        <dt>End Time</dt>
+        <dd>@Model.Reservation.EndTime.ToString("f")</dd>
+
+        <dt>Total Price</dt>
+        <dd>@(Model.Reservation.TotalPrice)$</dd>
+
+        <dt>Created At</dt>
+        <dd>@Model.Reservation.CreatedAt.ToString("f")</dd>
+
+        <dt>Cancelled</dt>
+        <dd>@(Model.Reservation.IsCancelled ? "Yes" : "No")</dd>
+
+        <dt>Status</dt>
+        @if (Model.Reservation.IsCancelled)
+        {
+            <dd>Cancelled</dd>
+        }
+        else if (hasTakenPlace)
+        {
+            <dd>Completed</dd>
+        }
+        else
+        {
+            <dd>Upcoming</dd>
+        }
+    </dl>
+</section>
+
+<hr />
+
+<section class="workspace-details">
+    <h3>Workspace Details</h3>
+
+    <a asp-controller="Workspace" asp-action="Detail" asp-route-id="@Model.Workspace.WorkspaceId">Go to workspace</a>
+
+    <dl>
+        <dt>Name</dt>
+        <dd>@Model.Workspace.Name</dd>
+
+        <dt>Description</dt>
+        <dd>@Model.Workspace.Description</dd>
+
+        <dt>Location</dt>
+        <dd>
+            @Model.Workspace.CoworkingCenter.Address.StreetAddress,
+            @Model.Workspace.CoworkingCenter.Address.City.Name,
+            @Model.Workspace.CoworkingCenter.Address.City.Country.Name
+        </dd>
+
+        <dt>Pricing</dt>
+        <dd>
+            @if (Model.Workspace.WorkspacePricings.Any())
+            {
+                <span>@(Model.Reservation.Pricing.PricePerHour)$ per hour</span>
+            }
+            else
+            {
+                <span>No pricing available</span>
+            }
+        </dd>
+    </dl>
+</section>
+
+@section Styles {
+    <style>
+        .reservation-details, .workspace-details {
+            margin-bottom: 2rem;
+        }
+
+        dl {
+            display: grid;
+            grid-template-columns: max-content 1fr;
+            gap: 0.5rem 1rem;
+        }
+
+        dt {
+            font-weight: bold;
+        }
+
+        dd {
+            margin: 0;
+        }
+
+        .badge {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            border-radius: 0.25rem;
+        }
+
+        .btn {
+            margin-bottom: 1rem;
+        }
+    </style>
+}

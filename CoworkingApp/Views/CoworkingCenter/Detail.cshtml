@@ -1,3 +1,4 @@
+@using CoworkingApp.Models.DataModels
 @model CoworkingApp.Models.DataModels.CoworkingCenter
 @{
     Layout = "_Layout";
@@ -8,6 +9,18 @@
         Latitude = Model.Address.Latitude,
         Longitude = Model.Address.Longitude
     });
+
+    var getCurrentStatus = (Workspace workspace) => workspace.WorkspaceHistories.MaxBy(x => x.ChangeAt)!.Status;
+
+    var statusToString = (WorkspaceStatus status) => (status.Type) switch
+    {
+        WorkspaceStatusType.Occupied => "Occupied",
+        WorkspaceStatusType.Available => "Available",
+        WorkspaceStatusType.UnderMaintenance => "Under Maintenance",
+        WorkspaceStatusType.Reserved => "Reserved",
+        _ => "Unknown"
+    };
+
 }
 @section Scripts {
     <script>
@@ -21,7 +34,7 @@
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map)
 
-                L.marker(coordinates).addTo(map).bindPopup(`
+            L.marker(coordinates).addTo(map).bindPopup(`
                 <h2>@Model.Name</h2>
                 <p>
                     @Model.Address.StreetAddress<br/>
@@ -29,10 +42,42 @@
                     Lat: @Model.Address.Latitude, Lng: @Model.Address.Longitude
                 </p>
                 `)
+
+
+            const filterDropdown = document.getElementById('workspace-filter')
+            const workspaceCards = document.querySelectorAll('.workspace-card')
+            const noWorkspacesMessage = document.getElementById('no-workspaces-message')
+
+            filterDropdown.addEventListener('change', function () {
+                const filterValue = filterDropdown.value
+                let visibleCount = 0
+
+                workspaceCards.forEach(card => {
+                    const status = card.getAttribute('data-status')
+
+                    // Show or hide cards based on the filter
+                    if (filterValue === 'all' || 
+                        (filterValue === 'available' && status === 'Available') ||
+                        (filterValue === 'unavailable' && status !== 'Available')) {
+                        // Show
+                        card.parentElement.style.display = ''
+                        visibleCount++
+                    } else {
+                        // Hide
+                        card.parentElement.style.display = 'none'
+                    }
+                });
+
+                // none are visible, then show different message
+                if (visibleCount == 0) {
+                    noWorkspacesMessage.style.display = 'block';
+                } else {
+                    noWorkspacesMessage.style.display = 'none';
+                }
+            });
         })
     </script>
 }
-
 
 <main id="coworking-center-detail">
     <!-- breadcrumb -->
@@ -47,6 +92,13 @@
 
         <!-- description -->
         <p>@Model.Description</p>
+
+        <p>
+            <strong>Available workspaces:</strong> 
+            @Model.Workspaces.Where(x => getCurrentStatus(x).Type == WorkspaceStatusType.Available).Count()
+            /
+            @Model.Workspaces.Count()
+        </p>
 
         <!-- address -->
         <address>
@@ -70,32 +122,43 @@
     <section aria-labelledby="workspaces-heading">
         <h2 id="workspaces-heading">Workspaces</h2>
 
+        <select id="workspace-filter">
+            <option value="all" selected>All Workspaces</option>
+            <option value="available">Available Workspaces</option>
+            <option value="unavailable">Unavailable Workspaces</option>
+        </select>
+        
+        <p id="no-workspaces-message" style="display: none;">No workspaces match the selected filter.</p>
+
         @if (Model.Workspaces.Any())
         {
             <ul class="workspace-list">
-            @foreach (var ws in Model.Workspaces)
-            {
-                <li>
-                    <article class="workspace-card" aria-labelledby="workspace-@ws.WorkspaceId-name">
-                        <h3 id="workspace-@ws.WorkspaceId-name">@ws.Name</h3>
-                        <p>@ws.Description</p>
-                        <p>
-                            Price: @(ws.WorkspacePricings.OrderByDescending(x => x.CreatedBy).First().PricePerHour)&dollar; per hour
-                        </p>
-                        <menu>
-                            <a asp-controller="Workspace" asp-action="Detail" asp-route-id="@ws.WorkspaceId">detail</a>
-                            @if (User.Identity != null && User.Identity.IsAuthenticated)
-                            {
-                                <a asp-controller="Workspace" asp-action="Reserve" asp-route-id="@ws.WorkspaceId">reserve</a>
-                            }
-                            else
-                            {
-                                <a asp-controller="Account" asp-action="Login">reserve</a>
-                            }
-                        </menu>
-                    </article>
-                </li>
-            }
+                @foreach (var ws in Model.Workspaces)
+                {
+                    <li>
+                        <article class="workspace-card" data-status="@statusToString(getCurrentStatus(ws))" aria-labelledby="workspace-@ws.WorkspaceId-name">
+                            <h3 id="workspace-@ws.WorkspaceId-name">@ws.Name</h3>
+                            <p>@ws.Description</p>
+                            <p>
+                                <strong>Price:</strong> @(ws.WorkspacePricings.OrderByDescending(x => x.CreatedBy).First().PricePerHour)&dollar; per hour
+                            </p>
+                            <p>
+                                <strong>Status:</strong> @(statusToString(getCurrentStatus(ws)))
+                            </p>
+                            <menu>
+                                <a asp-controller="Workspace" asp-action="Detail" asp-route-id="@ws.WorkspaceId">detail</a>
+                                @if (User.Identity != null && User.Identity.IsAuthenticated)
+                                {
+                                    <a asp-controller="Workspace" asp-action="Reserve" asp-route-id="@ws.WorkspaceId">reserve</a>
+                                }
+                                else
+                                {
+                                    <a asp-controller="Account" asp-action="Login">reserve</a>
+                                }
+                            </menu>
+                        </article>
+                    </li>
+                }
             </ul>
         }
         else
@@ -129,6 +192,24 @@
         .workspace-card:hover { 
             box-shadow: 0 8px 16px rgba(0,0,0,0.2);
         }
+    }
+
+    .workspace-card {
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .workspace-card[style*="display: none"] {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    #no-workspaces-message {
+        transition: opacity 0.3s ease;
+        opacity: 0;
+    }
+
+    #no-workspaces-message[style*="display: block"] {
+        opacity: 1;
     }
 }
 </style>

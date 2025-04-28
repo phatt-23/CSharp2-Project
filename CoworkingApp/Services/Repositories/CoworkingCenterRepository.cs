@@ -32,13 +32,14 @@ public class CoworkingCenterRepository
         query = filter.Longitude.ApplyTo(query, c => c.Address.Latitude);
         
         if (filter.IncludeWorkspaces)
-            query = query.Include(cc => cc.Workspaces);
+        {
+            query = query.Include(cc => cc.Workspaces).ThenInclude(w => w.WorkspacePricings)
+                       .Include(cc => cc.Workspaces).ThenInclude(w => w.WorkspaceHistories).ThenInclude(h => h.Status); 
+        }
 
         if (filter.IncludeAddress)
         {
-            query = query.Include(cc => cc.Address)
-                .Include(cc => cc.Address.City)
-                .Include(cc => cc.Address.City.Country);
+            query = query.Include(cc => cc.Address).Include(cc => cc.Address.City).Include(cc => cc.Address.City.Country);
         }
 
         return Task.FromResult<IEnumerable<CoworkingCenter>>(query);

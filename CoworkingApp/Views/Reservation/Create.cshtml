@@ -20,10 +20,10 @@
     </div>
 }
 
-<a asp-action="Index">Go back to index</a>
+<a asp-action="Index">Go to reservations</a>
 
 <form method="post" asp-action="Create">
-    <div>
+    <div class="form-row">
         <label asp-for="@Model.Request.WorkspaceId">Workspace</label>
         <select asp-for="@Model.Request.WorkspaceId">
             <option value="">-- select workspace --</option>
@@ -32,30 +32,63 @@
                 <option value="@ws.WorkspaceId">@ws.Name</option>
             }
         </select>
-        <span asp-validation-for="@Model.Request.WorkspaceId"></span>
+        <span class="field-error" asp-validation-for="@Model.Request.WorkspaceId"></span>
     </div>
    
-    <div>
+    <div class="form-row">
         <label asp-for="@Model.Request.StartTime">Start time</label>
         <input 
             type="datetime-local" 
             asp-for="@Model.Request.StartTime" 
-            value="@Model.Request.StartTime.ToString("yyyy-MM-ddTHH:mm")"
+            value="@Model.Request.StartTime.ToString("s")"
             />
-        <span asp-validation-for="@Model.Request.StartTime"></span>
+        <span class="field-error" n asp-validation-for="@Model.Request.StartTime"></span>
     </div>
     
-    <div>
+    <div class="form-row">
         <label asp-for="@Model.Request.EndTime">End time</label>
         <input 
             type="datetime-local" 
             asp-for="@Model.Request.EndTime" 
-            value="@Model.Request.EndTime.ToString("yyyy-MM-ddTHH:mm")"
+            value="@Model.Request.EndTime.ToString("s")"
             />
-        <span asp-validation-for="@Model.Request.EndTime"></span>
+        <span class="field-error" asp-validation-for="@Model.Request.EndTime"></span>
     </div>
     
-    <button type="submit">Create</button>
+    <div class="form-controls">
+        <button type="submit">Create</button>
+    </div>
 </form>
 
+@section Styles {
+    <style>
+        .form-row {
+            display: flex;
+            align-items: center;
+            margin-block: 1rem;
+        }
 
+        .form-row label {
+            flex: 0 0 16rem; /* fixed width for labels */
+            margin-right: 0.5rem;
+        }
+
+        .form-row input {
+            flex: 1; /* take up remaining space */
+            margin-right: 0.5rem;
+        }
+
+        .field-error {
+            color: #c00; /* red for errors */
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
+
+        .form-controls {
+            display: flex;
+            justify-content: space-between;
+            text-align: right;
+            margin-top: 1rem;
+        }
+    </style>
+}

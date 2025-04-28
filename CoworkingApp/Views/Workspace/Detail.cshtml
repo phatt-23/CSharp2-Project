@@ -1,4 +1,6 @@
 @using CoworkingApp.Models.DataModels;
+@using System.Globalization
+@using System.Security.Claims
 @model CoworkingApp.Models.ViewModels.WorkspaceDetailViewModel;
 
 @{
@@ -7,207 +9,238 @@
 
     var latestWorkspaceHistory = Model.Histories.MaxBy(x => x.ChangeAt);
 
+    var getCurrentPricing = (Workspace w) => w.WorkspacePricings.MaxBy(x => x.ValidFrom);
+    var maxDateTime = (DateTime a, DateTime b) => (a > b) ? a : b;
+    var minDateTime = (DateTime a, DateTime b) => (a < b) ? a : b;
 
-    var maxDateTime = (DateTime a, DateTime b) => {
-        if (a > b) return a;
-        return b;
-    };
-
-    var minDateTime = (DateTime a, DateTime b) => {
-        if (a < b) return a;
-        return b;
-    };
-
-
-    // sample working hours for the day
-    var timelineStart = DateTime.Today;
-    var timelineEnd = minDateTime(Model.Reservations.Max(x => x.EndTime), DateTime.Today.AddYears(2));
-
+    // the time span of the timeline (max 1 year ahead)
+    var timelineStart = DateTime.Now;
+    var timelineEnd = minDateTime(Model.Reservations.Where(x => !x.IsCancelled).Max(x => x.EndTime), DateTime.Today.AddYears(1));
 
     // sorted reservations by time, filtered by timeline span
     var reservations = Model.Workspace.Reservations
         .OrderBy(r => r.StartTime)
-        .Where(x => timelineStart <= x.EndTime && x.StartTime <= timelineEnd)
-        .ToList();
-
+        .Where(x => !x.IsCancelled && timelineStart <= x.EndTime && x.StartTime <= timelineEnd).ToList();
 
     // build segments of free and reserved times
-    var segments = new List<(DateTime Start, DateTime End, bool IsReserved)>();
+    var segments = new List<(int? ReservationId, DateTime Start, DateTime End, bool IsReserved, bool BelongsToUser)>();
     var cursor = timelineStart;
 
+    // get the user's id
+    var userId = -1;
+    var nameIdentifier = User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
+    if (nameIdentifier != null)
+    {
+        userId = int.Parse(nameIdentifier.Value);
+    }
 
     foreach (var res in reservations)
     {
-        if (cursor < res.StartTime)  // free before this reservation?
-            segments.Add((cursor, maxDateTime(timelineStart, res.StartTime), false));
+        var reservationBelongsToUser = res.CustomerId == userId;
 
-        segments.Add((maxDateTime(timelineStart, res.StartTime), res.EndTime, true));  // this reserved segment
-        cursor = res.EndTime; // next
+        // free before this reservation?
+        if (cursor < res.StartTime)
+        {
+            segments.Add((res.ReservationId, cursor, maxDateTime(timelineStart, res.StartTime), false, reservationBelongsToUser));
+        }
+
+        // this reserved segment
+        segments.Add((res.ReservationId, maxDateTime(timelineStart, res.StartTime), res.EndTime, true, reservationBelongsToUser));
+
+        // next
+        cursor = res.EndTime;
     }
 
+    // free after last reservation?
+    if (cursor < timelineEnd)
+    {
+        segments.Add((null, cursor, timelineEnd, false, false));
+    }
 
-    if (cursor < timelineEnd)  // free after last reservation?
-        segments.Add((cursor, timelineEnd, false));
-
-
-    var totalHours = (timelineEnd - timelineStart).TotalHours;  
+    var totalHours = (timelineEnd - timelineStart).TotalHours;
 }
 
 <main id="workspace-detail-page">
-    <!-- breadcrumb -->
-    <nav aria-label="breadcrumb">
-        <a asp-action="Index">go to workspace listing</a>
-    </nav>
+<!-- breadcrumb -->
+<nav aria-label="breadcrumb">
+    <a asp-action="Index">go to workspace listing</a>
+</nav>
 
-    <!-- details panel -->
-    <section aria-labelledby="workspace-details-heading">
-        <!-- name -->
-        <h1 id="center-name">@Model.Workspace.Name</h1>
-        <p><strong>Price:</strong> @(Model.Workspace.WorkspacePricings.MaxBy(x => x.ValidFrom)!.PricePerHour)&dollar; per hour</p>
+<!-- details panel -->
+<section aria-labelledby="workspace-details-heading">
+    <!-- name -->
+    <h1 id="center-name">@Model.Workspace.Name</h1>
+    <p><strong>Price:</strong> @(getCurrentPricing(Model.Workspace)!.PricePerHour)&dollar; per hour</p>
 
-        <!-- description -->
-        <p>@Model.Workspace.Description</p>
+    <!-- description -->
+    <p>@Model.Workspace.Description</p>
 
-        @if (latestWorkspaceHistory != null) {
-            @switch (latestWorkspaceHistory.Status.Type)
-            {
-                case WorkspaceStatusType.Available:
-                    <p><em>This workspace is currently available.</em></p>
-                    break;
-                case WorkspaceStatusType.Reserved:
-                case WorkspaceStatusType.Occupied:
-                    <p><b><em>Sorry, this workspace is currently not available.</em></b></p>
-                    break;
-                case WorkspaceStatusType.UnderMaintenance:
-                    <p><b><em>Sorry, this workspace is currently under maintainance.</em></b></p>
-                    break;
-            }
+    @if (latestWorkspaceHistory != null) {
+        @switch (latestWorkspaceHistory.Status.Type)
+        {
+            case WorkspaceStatusType.Available:
+                <p>
+                    <em>This workspace is currently available.</em>
+                </p>
+
+                break;
+            case WorkspaceStatusType.Reserved:
+            case WorkspaceStatusType.Occupied:
+                <p>
+                    <b><em>Sorry, this workspace is currently not available.</em></b>
+                </p>
+                    
+                break;
+            case WorkspaceStatusType.UnderMaintenance:
+                <p>
+                    <b><em>Sorry, this workspace is currently under maintainance.</em></b>
+                </p>
+                    
+                break;
         }
+    }
 
-        <p>
-            This workspace is located in
-            <b><a asp-controller="CoworkingCenter" asp-action="Detail" asp-route-id="@Model.CoworkingCenter.CoworkingCenterId">@Model.CoworkingCenter.Name</a></b> 
-            coworking center.
-        </p>
+    <p>
+        This workspace is located in
+        <b><a asp-controller="CoworkingCenter" asp-action="Detail" asp-route-id="@Model.CoworkingCenter.CoworkingCenterId">@Model.CoworkingCenter.Name</a></b> 
+        coworking center.
+    </p>
 
-        <!-- address -->
-        <address>
-            @Model.CoworkingCenter.Address.StreetAddress<br/>
-            @Model.CoworkingCenter.Address.City.Name, @Model.CoworkingCenter.Address.City.Country.Name<br/>
-            Lat: @Model.CoworkingCenter.Address.Latitude, Lng: @Model.CoworkingCenter.Address.Longitude
-        </address>
+    <!-- address -->
+    <address>
+        @Model.CoworkingCenter.Address.StreetAddress<br/>
+        @Model.CoworkingCenter.Address.City.Name, @Model.CoworkingCenter.Address.City.Country.Name<br/>
+        Lat: @Model.CoworkingCenter.Address.Latitude, Lng: @Model.CoworkingCenter.Address.Longitude
+    </address>
 
-        <menu>
-            @if (User.Identity != null && User.Identity.IsAuthenticated)
-            {
-                <menuitem>
-                    <a asp-controller="Workspace" asp-action="Reserve"
+    <menu>
+        @if (User.Identity != null && User.Identity.IsAuthenticated)
+        {
+            <menuitem>
+                <a asp-controller="Workspace" asp-action="Reserve"
                     asp-route-id="@Model.Workspace.WorkspaceId"
-                    asp-route-startTime="@(DateTime.Now.AddHours(1))"
-                    asp-route-endTime="@(DateTime.Now.AddDays(1))">
-                        make a reservation
-                    </a>
-                </menuitem>
-            }
-            else
-            {
-                <menuitem>
-                    <a asp-controller="Account" asp-action="Login">
-                       make a reservation
-                    </a>
-                </menuitem>
-            }
-        </menu>
-    </section>
+                    asp-route-startTime="@(DateTime.Now.AddHours(1).ToString("s", CultureInfo.InvariantCulture))"
+                    asp-route-endTime="@(DateTime.Now.AddDays(1).ToString("s", CultureInfo.InvariantCulture))">
+                    make a reservation
+                </a>
+            </menuitem>
+        }
+        else
+        {
+            <menuitem>
+                <a asp-controller="Account" asp-action="Login">
+                    make a reservation
+                </a>
+            </menuitem>
+        }
+    </menu>
+</section>
 
-    <hr />
+<hr />
     
-    <!-- availability-timeline-heading -->
-    <section aria-labelledby="availability-timeline-heading">
-        <h2 id="availability-timeline-heading">Availability Timeline</h2>
 
-        <div class="timeline-wrapper">
-            <ol class="timeline">
-                @foreach(var (seg, index) in segments.WithIndex()) 
-                {
-                    var widthPercent = (seg.End - seg.Start).TotalHours / totalHours * 100;  // calculate width %
-                    var tooltipText = $"{index + 1}) {seg.Start.ToString()} - {seg.End.ToString()}";
+<!-- availability timeline -->
+<section id="availability-timeline">
+    <h2>Availability Timeline</h2>
 
-                    <li class="segment @(seg.IsReserved ? "reserved" : "free")" 
-                        style="width:@widthPercent%">
-                        @if (seg.IsReserved)
+    <div class="timeline-wrapper">
+        <ol class="timeline">
+            @foreach (var (segment, index) in segments.WithIndex())
+            {
+                var widthPercent = (segment.End - segment.Start).TotalHours / totalHours * 100;  // calculate width %
+                var tooltipText = $"{index + 1}) {segment.Start.ToString()} - {segment.End.ToString()}";
+
+                <li class="segment @(segment.IsReserved ? "reserved" : "free")"
+                style="width:@widthPercent.ToString(System.Globalization.CultureInfo.InvariantCulture)%"
+                >
+                    @if (segment.IsReserved)
+                    {
+                        if (segment.BelongsToUser)
                         {
-                            <a>
+                            <a asp-controller="Reservation" asp-action="Detail" asp-route-id="@segment.ReservationId">
                                 @(index + 1)
-                                @* <time datetime="@seg.Start">@seg.Start</time>&RightArrow;
-                                <time datetime="@seg.End">@seg.End</time>         *@
                             </a>
                         }
                         else
                         {
-                            @if (!User.Identity?.IsAuthenticated ?? false)
-                            {
-                                <a asp-controller="Account" asp-action="Login">
-                                    @(index + 1)
-                                    @* <time datetime="@seg.Start">@seg.Start</time>&RightArrow;
-                                    <time datetime="@seg.End">@seg.End</time> *@
-                                </a>
-                            }
-                            else
-                            {
-                                <a asp-controller="Workspace" asp-action="Reserve"
-                                    asp-route-id="@Model.Workspace.WorkspaceId"
-                                    asp-route-startTime="@maxDateTime(seg.Start, DateTime.Now.AddHours(1))"
-                                    asp-route-endTime="@seg.End"
-                                    >
-                                    @(index + 1)
-                                    @* <time datetime="@seg.Start">@seg.Start</time>&RightArrow;
-                                    <time datetime="@seg.End">@seg.End</time> *@
-                                </a>
-                            }
+                            <a>
+                                @(index + 1)
+                            </a>
                         }
-                        <div class="tooltip">@tooltipText</div>
-                    </li>
-                }
-            </ol>
-            <div class="timeline-axis">
-                @{
-                    var tickCount = 4;
-                    var tickHoursStep = totalHours / tickCount;
-                    var it = timelineStart;
-
-                    while (it <= timelineEnd) {
-                        var leftPercent = (it - timelineStart).TotalHours / totalHours * 100;
-                        
-                        <div class="tick" style="left:@leftPercent%">
-                            <span>@it.ToString()</span>
-                        </div>;
-
-                        it = it.AddHours(tickHoursStep);
                     }
-                }
-            </div>
-        </div>
+                    else
+                    {
+                        @if (User.Identity != null && User.Identity.IsAuthenticated)
+                        {
+                            <a asp-controller="Workspace" asp-action="Reserve"
+                            asp-route-id="@Model.Workspace.WorkspaceId"
+                            asp-route-startTime="@maxDateTime(segment.Start, DateTime.Now.AddHours(1)).ToString("s", CultureInfo.InvariantCulture)"
+                            asp-route-endTime="@segment.End.ToString("s", CultureInfo.InvariantCulture)">
+                                @(index + 1)
+                            </a>
+                        }
+                        else
+                        {
+                            <a asp-controller="Account" asp-action="Login">
+                                @(index + 1)
+                            </a>
+                        }
+                    }
 
-        <h3>Reservations</h3>
-        <table>
-            <thead>
-                <th>#</th>
-                <th>start</th>
-                <th>end</th>
-            </thead>    
-            <tbody>
-                @foreach(var (seg, index) in segments.Where(x => x.IsReserved).WithIndex())
+                    <div class="tooltip">@tooltipText</div>
+                </li>
+            }
+        </ol>
+        <div class="timeline-axis">
+            @{
+                var tickCount = 4;
+                var tickHoursStep = totalHours / tickCount;
+                var it = timelineStart;
+
+                while (it <= timelineEnd)
                 {
-                    <tr>
-                        <td>@(index + 1)</td>
-                        <td>@seg.Start</td>
-                        <td>@seg.End</td>
-                    </tr>
+                    var leftPercent = (it - timelineStart).TotalHours / totalHours * 100;
+
+                    <div class="tick" style="left:@leftPercent.ToString(System.Globalization.CultureInfo.InvariantCulture)%">
+                        <span>
+                            @it.ToString("D")
+                            <br />
+                            @it.ToString("t")
+                        </span>
+                    </div>
+
+                    it = it.AddHours(tickHoursStep);
                 }
-            </tbody>
-        </table>
-    </section>
+            }
+        </div>
+    </div>
+
+    <h3>Reservations</h3>
+    <table>
+        <thead>
+            <th>#</th>
+            <th>start</th>
+            <th>end</th>
+        </thead>
+        <tbody>
+            @foreach (var (seg, index) in segments.Where(x => x.IsReserved).WithIndex())
+            {
+                <tr>
+                    @if (seg.BelongsToUser)
+                    {
+                        <td><a asp-controller="Reservation" asp-action="Detail" asp-route-id="@seg.ReservationId">@(index + 1)</a></td>
+                    }
+                    else
+                    {
+                        <td>@(index + 1)</td>
+                    }
+                    <td>@seg.Start</td>
+                    <td>@seg.End</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</section>
 </main>
 
 @section Styles {

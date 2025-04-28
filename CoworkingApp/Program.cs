@@ -18,32 +18,31 @@ namespace CoworkingApp;
 
 internal static class Program
 {
-
     private static void Main(string[] args)
     {
         /////////////////////////////////////////////////////////////////////////////
-        // HERE IS THE CONFIGURATION OF THE APPLICATION (order doesn't matter)
-        // Add services to the container.
+        // Services /////////////////////////////////////////////////////////////////
         /////////////////////////////////////////////////////////////////////////////
 
         var builder = WebApplication.CreateBuilder(args);
 
         builder.Services.AddControllersWithViews();
 
-        builder.Services.AddDbContext<CoworkingDbContext>(options =>
-            options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-        builder.Services.AddSingleton(
-            new MapperConfiguration(config => config.AddProfile<MapperProfile>())
-                .CreateMapper()
-        );
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddOpenApi("v1");  // [server-website]/openapi/v1.json
+        builder.Services.AddSwaggerGen(c =>
+        {
+            c.SwaggerDoc("v1", new OpenApiInfo { Title = "CoworkingApp", Version = "v1" });
+            c.UseAutoFiltererParameters();
+        });
 
         builder.Services
             .AddFluentValidationClientsideAdapters()
-            .AddFluentValidationAutoValidation(config => {
+            .AddValidatorsFromAssembly(typeof(Program).Assembly)
+            .AddFluentValidationAutoValidation(config =>
+            {
                 config.DisableDataAnnotationsValidation = true;
-            })
-            .AddValidatorsFromAssembly(typeof(Program).Assembly);
+            });
 
         builder.Services.AddHttpClient();
 
@@ -76,69 +75,53 @@ internal static class Program
                         // if not then use Authorization header with the bearer token
                         // (this is done automatically btw, it's the standard of JWT)
                         if (!string.IsNullOrEmpty(accessTokenFromCookie))
+                        {
                             context.Token = accessTokenFromCookie;
+                        }
                         
                         return Task.CompletedTask;
                     }
                 };    
             });
 
-        builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen(c =>
-        {
-            c.SwaggerDoc("v1", new OpenApiInfo { Title = "CoworkingApp", Version = "v1" });
-            c.UseAutoFiltererParameters();
-        });
-        builder.Services.AddOpenApi("v1");  // [server-website]/openapi/v1.json
+        builder.Services.AddDbContext<CoworkingDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+        builder.Services.AddSingleton(new MapperConfiguration(config => config.AddProfile<MapperProfile>()).CreateMapper());
 
-
+        builder.Services
+            .AddHttpClient<IGeocodingService, NominatimGeocodingService>()
+            .SetHandlerLifetime(TimeSpan.FromMinutes(5));
 
         builder.Services.AddScoped<IWorkspaceHistoryRepository, WorkspaceWorkspaceHistoryRepository>();
         builder.Services.AddScoped<IWorkspaceStatusRepository, WorkspaceStatusRepository>();
+        builder.Services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
+        builder.Services.AddScoped<IWorkspaceStatusRepository, WorkspaceStatusRepository>();
+        builder.Services.AddScoped<ICoworkingCenterRepository, CoworkingCenterRepository>();
+        builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
+        builder.Services.AddScoped<IWorkspacePricingRepository, WorkspacePricingRepository>();
+        builder.Services.AddScoped<IUserRepository, UserRepository>();
+        builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
+        builder.Services.AddScoped<IAddressRepository, AddressRepository>();
 
         builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
-        builder.Services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
-
         builder.Services.AddScoped<IWorkspaceStatusService, WorkspaceStatusService>();
-        builder.Services.AddScoped<IWorkspaceStatusRepository, WorkspaceStatusRepository>();
-
         builder.Services.AddScoped<IReservationService, ReservationService>();
-        builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
-
-        builder.Services.AddScoped<ICoworkingCenterRepository, CoworkingCenterRepository>();
         builder.Services.AddScoped<ICoworkingCenterService, CoworkingCenterService>();
-
         builder.Services.AddScoped<IAuthService, AuthService>();
-
         builder.Services.AddScoped<IWorkspacePricingService, WorkspacePricingService>();
-        builder.Services.AddScoped<IWorkspacePricingRepository, WorkspacePricingRepository>();
-
         builder.Services.AddScoped<IUserService, UserService>();
-        builder.Services.AddScoped<IUserRepository, UserRepository>();
-
-        builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
-
-
-
 
         var app = builder.Build();
-
 
         // For PostgresDB timestamp to compatible with C# datetime
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 
         //////////////////////////////////////////////////////////////////////////
-        // HERE IS THE REQUEST HANDLING PIPELINE (AKA MIDDLEWARES)
-        // Manipulates the request coming from the user or returning to the user.
-        // Request go through each middleware from top to bottom.
-        // Configure the HTTP request pipeline.
+        // Middlewares ///////////////////////////////////////////////////////////
         //////////////////////////////////////////////////////////////////////////
 
         // In the development profile, use the Swagger and Scalar for API testing.
-        app.UseMiddleware<TokenRefreshMiddleware>();
-
         if (app.Environment.IsDevelopment())
         {
             app.MapOpenApi();
@@ -155,6 +138,7 @@ internal static class Program
             app.UseHsts();
         }
 
+        app.UseMiddleware<TokenRefreshMiddleware>();
         app.UseHttpsRedirection();
         app.UseAuthentication();
         app.UseRouting();
@@ -167,4 +151,6 @@ internal static class Program
 
         app.Run();
     }
+
+
 }

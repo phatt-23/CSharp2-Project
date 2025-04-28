@@ -1,11 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
 using CoworkingApp.Models.DataModels;
-using CoworkingApp.Models.DTOModels.CoworkingCenters;
-using CoworkingApp.Models.DTOModels.Reservation;
-using CoworkingApp.Models.DTOModels.WorkspaceStatus;
 
-namespace CoworkingApp.Models.DTOModels.Workspace;
+namespace CoworkingApp.Models.DtoModels;
 
 /////////////////////////////////////
 // Data DTOs

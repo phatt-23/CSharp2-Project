@@ -1,8 +1,6 @@
-using CoworkingApp.Models.DTOModels.User;
-using CoworkingApp.Models.DTOModels.Workspace;
 using CoworkingApp.Services;
 
-namespace CoworkingApp.Models.DTOModels.Reservation;
+namespace CoworkingApp.Models.DtoModels;
 
 /////////////////////////////////////////////////////////////
 // Data DTOs
@@ -54,9 +52,9 @@ public class AdminReservationQueryRequestDto : ReservationQueryRequestDto
 
 public class ReservationCreateRequestDto
 {
-    public int WorkspaceId { get; init; }
-    public DateTime StartTime { get; set; } = DateTime.Now.AddMinutes(10);
-    public DateTime EndTime { get; init; } = DateTime.Now.AddHours(1);
+    public int WorkspaceId { get; set; }
+    public DateTime StartTime { get; set; }
+    public DateTime EndTime { get; set; }
 }
 
 [AdminDto]

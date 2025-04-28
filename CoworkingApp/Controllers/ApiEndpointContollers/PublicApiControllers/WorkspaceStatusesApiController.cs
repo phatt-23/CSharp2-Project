@@ -1,9 +1,9 @@
 using AutoMapper;
-using CoworkingApp.Models.DTOModels.WorkspaceStatus;
+using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CoworkingApp.Controllers.APIEndpoints.Public;
+namespace CoworkingApp.Controllers.ApiEndpointContollers.PublicApiControllers;
 
 public interface IWorkspaceStatusesApi
 {
@@ -14,15 +14,17 @@ public interface IWorkspaceStatusesApi
 
 [ApiController]
 [Route("/api/workspace-status")]
-public class WorkspaceStatusesApiController(
-    IWorkspaceStatusService workspaceStatusService,
-    IMapper mapper 
-    ) : Controller, IWorkspaceStatusesApi
+public class WorkspaceStatusesApiController
+    (
+        IWorkspaceStatusService workspaceStatusService,
+        IMapper mapper 
+    ) 
+    : Controller, IWorkspaceStatusesApi
 {
     [HttpGet]
     public async Task<ActionResult<WorkspaceStatusesResponseDto>> GetAsync([FromQuery] WorkspaceStatusQueryRequestDto request)
     {
-        var statuses = await workspaceStatusService.GetWorkspaceStatusesAsync(request);
+        var statuses = await workspaceStatusService.GetStatuses(request);
 
         var response = new WorkspaceStatusesResponseDto
         {
@@ -38,7 +40,7 @@ public class WorkspaceStatusesApiController(
     {
         try
         {
-            var status = await workspaceStatusService.GetWorkspaceStatusByIdAsync(id);
+            var status = await workspaceStatusService.GetStatusById(id);
             var statusDto = mapper.Map<WorkspaceStatusDto>(status);
             return Ok(statusDto);
         }

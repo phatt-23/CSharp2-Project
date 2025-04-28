@@ -1,11 +1,11 @@
-using CoworkingApp.Models.DTOModels;
+using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Types;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using System.Reflection;
 
-namespace CoworkingApp.Controllers.APIEndpoints.Public;
+namespace CoworkingApp.Controllers.ApiEndpointContollers.PublicApiControllers;
 
 public interface IApiDocsApi
 {
@@ -18,7 +18,8 @@ public interface IApiDocsApi
 public class ApiDocsApiController : Controller, IApiDocsApi
 {
     [HttpGet]
-    public async Task<IActionResult> GetJson([FromQuery] string? url)
+    public async Task<IActionResult> 
+        GetJson([FromQuery] string? url)
     {
         if (url != null)
         {

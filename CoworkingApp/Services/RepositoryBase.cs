@@ -4,11 +4,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CoworkingApp.Services;
 
-public abstract class RepositoryBase<TEntity, TFilter>(DbContext context)
+public abstract class RepositoryBase<TEntity, TFilter>
+    (
+        DbContext context
+    )
     where TEntity : class
 {
-    public virtual IQueryable<TEntity> ApplyFilter(IQueryable<TEntity> query, TFilter filter)
-        => query;
+    public virtual IQueryable<TEntity> ApplyFilter(IQueryable<TEntity> query, TFilter filter) => query;
 
     public async Task<TEntity> AddAsync(TEntity entity)
     {
@@ -21,8 +23,11 @@ public abstract class RepositoryBase<TEntity, TFilter>(DbContext context)
 
 public class RangeFilter<T> where T : struct, IComparable<T>
 {
-    [FromQuery(Name = "min")]public T? Min { get; set; }
-    [FromQuery(Name = "max")]public T? Max { get; set; }
+    [FromQuery(Name = "min")]
+    public T? Min { get; set; }
+
+    [FromQuery(Name = "max")]
+    public T? Max { get; set; }
     
     public IQueryable<TEntity> ApplyTo<TEntity>(
         IQueryable<TEntity> query, 
@@ -46,8 +51,11 @@ public class RangeFilter<T> where T : struct, IComparable<T>
 
 public class NullableRangeFilter<T> where T : struct, IComparable<T>
 {
-    [FromQuery(Name = "min")]public T? Min { get; set; }
-    [FromQuery(Name = "max")]public T? Max { get; set; }
+    [FromQuery(Name = "min")]
+    public T? Min { get; set; }
+
+    [FromQuery(Name = "max")]
+    public T? Max { get; set; }
 
     public IQueryable<TEntity> ApplyTo<TEntity>(
         IQueryable<TEntity> query, 

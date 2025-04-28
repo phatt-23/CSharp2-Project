@@ -1,4 +1,4 @@
-namespace CoworkingApp.Models.DTOModels;
+namespace CoworkingApp.Models.DtoModels;
 
 public class PaginationRequestDto
 {

@@ -9,9 +9,10 @@ namespace CoworkingApp.Services.Repositories;
 
 public interface IUserRepository
 {
-    Task<User> AddUser(User user);
+    Task<User>              AddUser(User user);
     Task<IEnumerable<User>> GetUsers(UserFilter filter);
-    Task<User> UpdateUser(User user);
+    Task<User>              UpdateUser(User user);
+    Task<User>              RemoveUser(User user);
 }
 
 public class UserRepository
@@ -20,7 +21,7 @@ public class UserRepository
     ) 
     : IUserRepository
 {
-    public Task<IEnumerable<User>> GetUsers(UserFilter filter)
+    public async Task<IEnumerable<User>> GetUsers(UserFilter filter)
     {
         var query = context.Users.ApplyFilter(filter);
 
@@ -33,36 +34,40 @@ public class UserRepository
         if (filter.IncludeUserRole)
             query = query.Include(x => x.Role);
         
-        return Task.FromResult<IEnumerable<User>>(query);
+        return query;
     }
 
     public async Task<User> UpdateUser(User user)
     {
-        var u = context.Users.Update(user);
+        var updatedUser = context.Users.Update(user);
         await context.SaveChangesAsync();
-        return u.Entity;
+        return updatedUser.Entity;
     }
 
     public async Task<User> AddUser(User user)
     {
-        var u = await context.Users.AddAsync(user);
+        var addedUser = await context.Users.AddAsync(user);
         await context.SaveChangesAsync();
-        return u.Entity;
+        return addedUser.Entity;
     }
 
-    public Task<User> RemoveUser(int userId)
+    public async Task<User> RemoveUser(User user)
     {
-        var user = context.Users.Single(x => x.UserId == userId);
-        user.IsRemoved
-        // throw new NotImplementedException("User removal is not implemented. Add column is_removed into the database.");
-        return Task.FromResult<User>(user);
+        var u = context.Users.Single(x => x.UserId == user.UserId);
+        u.IsRemoved = true;
+
+        var removedUser = context.Users.Update(u);
+        await context.SaveChangesAsync();
+
+        return removedUser.Entity;
     }
 }
 
 public class UserFilter : FilterBase
 {
     [CompareTo(nameof(User.UserId))]
-    public int? Id { get; set; }
+    public int? UserId { get; set; }
+
 
     [CompareTo(nameof(User.Email))]
     public string? Email { get; set; }
@@ -72,8 +77,6 @@ public class UserFilter : FilterBase
 
     [CompareTo(nameof(User.IsRemoved))]
     public bool IsRemoved { get; set; } = false;
-
-
     public RangeFilter<DateTime> CreatedAt { get; set; } = new();
     public NullableRangeFilter<DateTime> RefreshTokenExpiry { get; set; } = new();
     public bool IncludeReservations { get; set; } = false;

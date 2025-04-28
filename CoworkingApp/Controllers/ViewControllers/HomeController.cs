@@ -1,39 +1,44 @@
 using System.Diagnostics;
+using System.Linq;
+using System.Security.Claims;
 using CoworkingApp.Models;
+using CoworkingApp.Models.DataModels;
 using CoworkingApp.Models.ViewModels;
+using CoworkingApp.Services;
 using CoworkingApp.Services.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CoworkingApp.Controllers.MVC;
+namespace CoworkingApp.Controllers.ViewControllers;
 
 public interface IHomeController
 {
-    public Task<IActionResult> Index(); // Landing page for unauthenticated users
-    public Task<IActionResult> Dashboard(); // View after login (for authenticated users) 
+    public Task<IActionResult> Index(); 
+    public Task<IActionResult> Dashboard(); 
 }
-
 
 public class HomeController
     (
-    IWorkspaceRepository workspaceRepository,
-    ICoworkingCenterRepository coworkingCenterRepository 
+        IWorkspaceRepository workspaceRepository,
+        ICoworkingCenterRepository coworkingCenterRepository,
+        IReservationRepository reservationRepository,
+        IUserRepository userRepository,
+        IUserService userService
     ) 
     : Controller, IHomeController
 {
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var workspaces = await workspaceRepository.GetWorkspacesAsync(new ()
+        var workspaces = await workspaceRepository.GetWorkspaces(new ()
         {
             HasPricing = true,
             IncludePricings = true,
             IncludeStatus = true,
         });
 
-        var coworkingCenters = await coworkingCenterRepository.GetCoworkingCentersAsync(new CoworkingCenterFilter()
+        var coworkingCenters = await coworkingCenterRepository.GetCenters(new CoworkingCenterFilter()
         {
-
         });
 
         var model = new HomeIndexViewModel()
@@ -49,7 +54,25 @@ public class HomeController
     [HttpGet("dashboard")]
     public async Task<IActionResult> Dashboard()
     {
-        return View();
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+        var reservations = await reservationRepository.GetReservations(new ReservationsFilter()
+        {
+            CustomerId = userId,
+            IsCancelled = false,
+            IncludeWorkspace = true,
+        });
+
+        var user = (await userRepository.GetUsers(new UserFilter
+        {
+            UserId = userId
+        })).Single();
+
+        return View(new HomeDashboardViewModel 
+        { 
+            Reservations = reservations,
+            User = user,
+        });
     }
 
     [HttpGet("privacy")]

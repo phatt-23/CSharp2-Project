@@ -1,5 +1,5 @@
 using CoworkingApp.Models.DataModels;
-using CoworkingApp.Models.DTOModels.User;
+using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Services.Repositories;
 
 namespace CoworkingApp.Services;
@@ -22,7 +22,7 @@ public class UserService
     {
         return await userRepository.GetUsers(new UserFilter()
             {
-                Id = request.Id,
+                UserId = request.Id,
                 Email = request.Email,
                 RoleId = request.RoleId,
                 CreatedAt = request.CreatedAt,
@@ -49,6 +49,7 @@ public class UserService
 
     public async Task<User> RemoveUser(int userId)
     {
-        return await userRepository.RemoveUser(userId);
+        var users = await userRepository.GetUsers(new UserFilter() { UserId = userId });
+        return await userRepository.RemoveUser(users.Single());
     }
 }

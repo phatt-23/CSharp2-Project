@@ -4,9 +4,9 @@ using System.Text;
 using AutoMapper;
 using CoworkingApp.Data;
 using CoworkingApp.Models.DataModels;
-using CoworkingApp.Models.DTOModels.Auth;
-using CoworkingApp.Models.DTOModels.User;
+using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Models.Exceptions;
+using CoworkingApp.Types;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -15,21 +15,13 @@ using Microsoft.IdentityModel.Tokens;
 namespace CoworkingApp.Services;
 public interface IAuthService
 {
-    Task<UserDto> Register(UserRegisterRequestDto request);
-    Task<TokenResponseDto> Login(UserLoginRequestDto request);
-    Task Logout(HttpResponse response);
-    
-    Task<TokenResponseDto> RefreshTokens(string userId, string refreshToken);
-    Task<bool> TryRefreshToken(HttpContext context);
-    Task StoreCookies(HttpResponse response, TokenResponseDto tokenResponseDto);
-    Task<string?> ExtractUserIdFromToken(string token);
-}
-
-public class EmailTakenException(string message) : Exception(message);
-
-public class WrongPasswordException(string message) : Exception(message)
-{
-    public readonly string PropertyName = nameof(UserLoginRequestDto.Password);
+    Task<UserDto>           RegisterUser(UserRegisterRequestDto request);
+    Task<TokenResponseDto>  LoginUser(UserLoginRequestDto request);
+    Task                    LogoutUser(HttpResponse response);
+    Task<TokenResponseDto>  RefreshTokens(string userId, string refreshToken);
+    Task<bool>              TryRefreshToken(HttpContext context);
+    Task                    StoreCookies(HttpResponse response, TokenResponseDto tokenResponseDto);
+    Task<string?>           ExtractUserIdFromToken(string token);
 }
 
 public class AuthService
@@ -40,7 +32,7 @@ public class AuthService
     ) 
     : IAuthService
 {
-    public async Task<UserDto> Register(UserRegisterRequestDto request)
+    public async Task<UserDto> RegisterUser(UserRegisterRequestDto request)
     {
         if (context.Users.Any(u => u.Email == request.Email))
         {
@@ -63,7 +55,7 @@ public class AuthService
         return userDto;
     }
 
-    public async Task<TokenResponseDto> LoginAsync(UserLoginRequestDto request)
+    public async Task<TokenResponseDto> LoginUser(UserLoginRequestDto request)
     {
         var user = await context.Users
             .Include(u => u.Role)
@@ -74,10 +66,10 @@ public class AuthService
         if (new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, request.Password) == PasswordVerificationResult.Failed)
             throw new WrongPasswordException("Password verification failed");
 
-        return await CreateTokenResponseAsync(user);
+        return await CreateTokenResponse(user);
     }
 
-    public Task Logout(HttpResponse response)
+    public Task LogoutUser(HttpResponse response)
     {
         response.Cookies.Delete("jwt");
         response.Cookies.Delete("refreshToken");
@@ -235,3 +227,4 @@ public class AuthService
         return new JwtSecurityTokenHandler().WriteToken(token);  
     }
 }
+

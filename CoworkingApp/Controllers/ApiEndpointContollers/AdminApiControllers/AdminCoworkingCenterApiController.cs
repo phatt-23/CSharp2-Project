@@ -1,6 +1,5 @@
 using AutoMapper;
-using CoworkingApp.Models.DataModels;
-using CoworkingApp.Models.DTOModels.CoworkingCenters;
+using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Services;
 using CoworkingApp.Types;
 using Microsoft.AspNetCore.Authorization;
@@ -10,9 +9,9 @@ namespace CoworkingApp.Controllers.APIEndpoints.Admin;
 
 public interface IAdminCoworkingCentersApi
 {
-    Task<ActionResult<IEnumerable<AdminCoworkingCenterDto>>> Get([FromQuery] CoworkingCenterQueryRequestDto? request = null);
-    Task<ActionResult<AdminCoworkingCenterDto>> Create([FromBody] CoworkingCenterCreateRequestDto request);
-    Task<ActionResult<AdminCoworkingCenterDto>> Update(int coworkingCenterId, [FromBody] CoworkingCenterUpdateRequestDto request);
+    Task<ActionResult<AdminCoworkingCenterQueryResponseDto>> GetCenters([FromQuery] CoworkingCenterQueryRequestDto? request = null);
+    Task<ActionResult<AdminCoworkingCenterDto>> CreateCenter([FromBody] CoworkingCenterCreateRequestDto request);
+    Task<ActionResult<AdminCoworkingCenterDto>> UpdateCenter(int coworkingCenterId, [FromBody] CoworkingCenterUpdateRequestDto request);
 }
 
 [ApiController]
@@ -27,12 +26,20 @@ public class AdminCoworkingCenterApiController
 {
     [HttpGet]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<IEnumerable<AdminCoworkingCenterDto>>> Get([FromQuery] CoworkingCenterQueryRequestDto? request = null)
+    public async Task<ActionResult<AdminCoworkingCenterQueryResponseDto>> 
+        GetCenters([FromQuery] CoworkingCenterQueryRequestDto? request = null)
     {
         try
         {
             var centers = await coworkingCenterService.GetCenters(request ?? new ());
-            return Ok(centers);
+
+            return Ok(new AdminCoworkingCenterQueryResponseDto
+            {
+                Centers = mapper.Map<IEnumerable<AdminCoworkingCenterDto>>(centers),
+                TotalCount = centers.Count(),
+                PageNumber = request?.PageNumber ?? 1,
+                PageSize = request?.PageSize ?? 10
+            });
         }
         catch (Exception e)
         {
@@ -42,7 +49,8 @@ public class AdminCoworkingCenterApiController
 
     [HttpPost]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<AdminCoworkingCenterDto>> Create([FromBody] CoworkingCenterCreateRequestDto request)
+    public async Task<ActionResult<AdminCoworkingCenterDto>> 
+        CreateCenter([FromBody] CoworkingCenterCreateRequestDto request)
     {
         try
         {
@@ -58,7 +66,8 @@ public class AdminCoworkingCenterApiController
 
     [HttpPut]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<AdminCoworkingCenterDto>> Update(int coworkingCenterId, [FromBody] CoworkingCenterUpdateRequestDto request)
+    public async Task<ActionResult<AdminCoworkingCenterDto>> 
+        UpdateCenter(int coworkingCenterId, [FromBody] CoworkingCenterUpdateRequestDto request)
     {
         try
         {

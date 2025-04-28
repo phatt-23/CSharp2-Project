@@ -1,5 +1,5 @@
 using AutoMapper;
-using CoworkingApp.Models.DTOModels.Reservation;
+using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Services;
 using CoworkingApp.Types;
 using Microsoft.AspNetCore.Authorization;
@@ -31,7 +31,7 @@ public class AdminReservationApiController
     {
         try
         {
-            var reservations = await reservationService.GetReservationsForAdminAsync(request);
+            var reservations = await reservationService.GetReservationsForAdmin(request);
             var reservationDtos = mapper.Map<IEnumerable<AdminReservationDto>>(reservations);
             return Ok(reservationDtos);
         }
@@ -47,7 +47,7 @@ public class AdminReservationApiController
     {
         try
         {
-            var reservation = await reservationService.GetReservationByIdAsync(id);
+            var reservation = await reservationService.GetReservationById(id);
             var reservationDto = mapper.Map<AdminReservationDto>(reservation);
             return Ok(reservationDto);
         }

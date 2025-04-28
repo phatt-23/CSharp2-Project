@@ -1,7 +1,6 @@
-using System.Text.Json.Serialization;
-using CoworkingApp.Models.DTOModels.Reservation;
-using CoworkingApp.Models.DTOModels.Workspace;
 using CoworkingApp.Services;
+
+namespace CoworkingApp.Models.DtoModels;
 
 //////////////////////////////////////////
 // Data DTOs

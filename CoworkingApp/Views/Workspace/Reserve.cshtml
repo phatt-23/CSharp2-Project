@@ -1,44 +1,360 @@
 @model CoworkingApp.Models.ViewModels.WorkspaceReserveViewModel;
+@using System.Globalization;
+@using CoworkingApp.Models.DataModels
+@using System.Security.Claims
 
 @{
     ViewBag.Title = "title";
     Layout = "_Layout";
-}
-@section Scripts {
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            @* $("#workspace-reservation-form").on('') *@
-        })
-    </script>
+
+    var getCurrentPricing = (Workspace w) => w.WorkspacePricings.MaxBy(x => x.ValidFrom);
+    var maxDateTime = (DateTime a, DateTime b) => (a > b) ? a : b;
+    var minDateTime = (DateTime a, DateTime b) => (a < b) ? a : b;
+
+    // the time span of the timeline (max 1 year ahead)
+    var timelineStart = DateTime.Now;
+    var timelineEnd = minDateTime(Model.Reservations.Where(x => !x.IsCancelled).Max(x => x.EndTime), DateTime.Today.AddYears(1));
+
+    // sorted reservations by time, filtered by timeline span
+    var reservations = Model.Workspace.Reservations
+        .OrderBy(r => r.StartTime)
+        .Where(x => !x.IsCancelled && timelineStart <= x.EndTime && x.StartTime <= timelineEnd).ToList();
+
+    // build segments of free and reserved times
+    var segments = new List<(int? ReservationId, DateTime Start, DateTime End, bool IsReserved, bool BelongsToUser)>();
+    var cursor = timelineStart;
+
+    var userId = int.Parse(User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)!.Value);
+
+    foreach (var res in reservations)
+    {
+        var reservationBelongsToUser = res.CustomerId == userId;
+
+        // free before this reservation?
+        if (cursor < res.StartTime)
+        {
+            segments.Add((res.ReservationId, cursor, maxDateTime(timelineStart, res.StartTime), false, reservationBelongsToUser));
+        }
+
+        // this reserved segment
+        segments.Add((res.ReservationId, maxDateTime(timelineStart, res.StartTime), res.EndTime, true, reservationBelongsToUser));
+
+        // next
+        cursor = res.EndTime;
+    }
+
+    // free after last reservation?
+    if (cursor < timelineEnd)
+    {
+        segments.Add((null, cursor, timelineEnd, false, false));
+    }
+
+    var totalHours = (timelineEnd - timelineStart).TotalHours;
 }
 
-<h2>Make a reservation for <strong>@Model.Workspace.Name</strong></h2>
+<h2>@Model.Workspace.Name</h2>
+
+<h4>Make a reservation</h4>
 
 <p>
-    <strong>Price:</strong> @(Model.Workspace.WorkspacePricings.MaxBy(x => x.ValidFrom)!.PricePerHour)$ per hour
+    <strong>Price:</strong> @(getCurrentPricing(Model.Workspace)!.PricePerHour)$ per hour
 </p>
 
+@if (ViewData["ErrorMessage"] != null)
+{
+    <p class="alert-danger">@ViewData["ErrorMessage"]</p>
+}
+
 <form id="workspace-reservation-form" method="post" asp-controller="Workspace" asp-action="Reserve">
-    <div>
+    <input type="hidden" asp-for="@Model.Request.WorkspaceId" value="@Model.Request.WorkspaceId" />
+
+    <div class="form-row">
         <label asp-for="@Model.Request.StartTime">Start time</label>
         <input 
-            type="datetime-local" 
-            asp-for="@Model.Request.StartTime" 
-            value="@Model.Request.StartTime.ToString()"
-            />
+        type="datetime-local" 
+        asp-for="@Model.Request.StartTime" 
+        value="@Model.Request.StartTime.ToString("s")"
+        />
         <span asp-validation-for="@Model.Request.StartTime"></span>
     </div>
-    
-    <div>
+
+    <div class="form-row">
         <label asp-for="@Model.Request.EndTime">End time</label>
         <input 
-            type="datetime-local" 
-            asp-for="@Model.Request.EndTime" 
-            value="@Model.Request.EndTime.ToString()"
-            />
+        type="datetime-local" 
+        asp-for="@Model.Request.EndTime"
+        value="@Model.Request.EndTime.ToString("s")"
+        />
         <span asp-validation-for="@Model.Request.EndTime"></span>
     </div>
-    
-    <button type="submit">Create</button>
+
+    <div class="form-controls">
+        <button type="submit">Create</button>
+    </div>
 </form>
+
+<hr />
+
+<!-- availability timeline -->
+<section id="availability-timeline">
+    <h2>Availability Timeline</h2>
+
+    <div class="timeline-wrapper">
+        <ol class="timeline">
+            @foreach (var (segment, index) in segments.WithIndex())
+            {
+                var widthPercent = (segment.End - segment.Start).TotalHours / totalHours * 100;  // calculate width %
+                var tooltipText = $"{index + 1}) {segment.Start.ToString()} - {segment.End.ToString()}";
+
+                <li class="segment @(segment.IsReserved ? "reserved" : "free")"
+                style="width:@widthPercent.ToString(System.Globalization.CultureInfo.InvariantCulture)%"
+                >
+                    @if (segment.IsReserved)
+                    {
+                        if (segment.BelongsToUser)
+                        {
+                            <a asp-controller="Reservation" asp-action="Detail" asp-route-id="@segment.ReservationId">
+                                @(index + 1)
+                            </a>
+                        }
+                        else
+                        {
+                            <a>
+                                @(index + 1)
+                            </a>
+                        }
+                    }
+                    else
+                    {
+                        @if (User.Identity != null && User.Identity.IsAuthenticated)
+                        {
+                            <a asp-controller="Workspace" asp-action="Reserve"
+                            asp-route-id="@Model.Workspace.WorkspaceId"
+                            asp-route-startTime="@maxDateTime(segment.Start, DateTime.Now.AddHours(1)).ToString("s", CultureInfo.InvariantCulture)"
+                            asp-route-endTime="@segment.End.ToString("s", CultureInfo.InvariantCulture)">
+                                @(index + 1)
+                            </a>
+                        }
+                        else
+                        {
+                            <a asp-controller="Account" asp-action="Login">
+                                @(index + 1)
+                            </a>
+                        }
+                    }
+
+                    <div class="tooltip">@tooltipText</div>
+                </li>
+            }
+        </ol>
+        <div class="timeline-axis">
+            @{
+                var tickCount = 4;
+                var tickHoursStep = totalHours / tickCount;
+                var it = timelineStart;
+
+                while (it <= timelineEnd)
+                {
+                    var leftPercent = (it - timelineStart).TotalHours / totalHours * 100;
+
+                    <div class="tick" style="left:@leftPercent.ToString(System.Globalization.CultureInfo.InvariantCulture)%">
+                        <span>
+                            @it.ToString("D")
+                            <br />
+                            @it.ToString("t")
+                        </span>
+                    </div>
+
+                    it = it.AddHours(tickHoursStep);
+                }
+            }
+        </div>
+    </div>
+
+    <h3>Reservations</h3>
+    <table>
+        <thead>
+            <th>#</th>
+            <th>start</th>
+            <th>end</th>
+        </thead>
+        <tbody>
+            @foreach (var (seg, index) in segments.Where(x => x.IsReserved).WithIndex())
+            {
+                <tr>
+                    @if (seg.BelongsToUser)
+                    {
+                        <td><a asp-controller="Reservation" asp-action="Detail" asp-route-id="@seg.ReservationId">@(index + 1)</a></td>
+                    }
+                    else
+                    {
+                        <td>@(index + 1)</td>
+                    }
+                    <td>@seg.Start</td>
+                    <td>@seg.End</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</section>
+
+
+@section Styles {
+<style>
+    .alert-danger {
+        font-size: 16px;
+        font-weight: bold;
+        color: red;
+    }
+
+    .form-row {
+        display: flex;
+        align-items: center;
+        margin-block: 1rem;
+    }
+
+    .form-row label {
+        flex: 0 0 16rem; /* fixed width for labels */
+        margin-right: 0.5rem;
+    }
+
+    .form-row input {
+        flex: 1; /* take up remaining space */
+        margin-right: 0.5rem;
+    }
+
+    .field-error {
+        color: #c00; /* red for errors */
+        font-size: 0.9em;
+        white-space: nowrap;
+    }
+
+    .form-controls {
+        text-align: right;
+        margin-top: 1rem;
+    }
+
+    #availability-timeline {
+
+        div.timeline-wrapper {
+            margin: 3em;
+            position: relative;       /* for axis positioning */
+        }
+
+        ol.timeline {
+            list-style: none;
+            display: flex;
+            width: auto;
+            height: 5rem;
+            padding: 0;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #fafafa;
+        }
+
+        ol.timeline li.segment {
+            display: flex;
+            flex: 0 0 auto;
+            align-items: center;
+            justify-content: center;
+            padding: 0 0.25rem;
+            box-sizing: border-box;
+            white-space: nowrap;
+            font-size: 0.75rem;
+            text-overflow: ellipsis;
+        }
+
+        /* hide tooltip by default */
+        .tooltip {
+            display: none;
+            position: absolute;
+            top: -2rem;               /* tweak vertical offset */
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            background: rgba(0,0,0,0.75);
+            color: #fff;
+            padding: 0.25rem 0.5rem;
+            font-size: 1.5rem;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* show it when you hover the segment */
+        li.segment.reserved {
+            background: #96a3f3;
+            color: #1e1e2e;
+            border-right: 1px solid #fff;
+        
+            &:hover .tooltip {
+                display: block; 
+            }
+        }
+
+        li.segment.free {
+            background: #f5f5f5;
+            @* position: relative; *@
+
+            a {
+                inset: 0;
+                display: flex;            
+                align-items: center;
+                justify-content: center;
+                text-align: center; 
+            }
+
+            &:hover .tooltip {
+                display: block; 
+            }
+        }
+
+        /* new axis container */
+        .timeline-axis {
+            position: relative;
+            margin-bottom: 4em;
+            padding-top: 0.5rem;
+
+            .tick {
+                position: relative;
+
+                span {
+                    position: absolute;
+                    transform: translateX(-50%);
+                    font-size: 0.8rem;
+                    white-space: nowrap;
+                }
+
+                &::before {
+                    content: "";
+                    position: absolute;
+                    top: -5px;               
+                    transform: translateX(-50%);
+                    border-left: 0.25rem solid transparent;
+                    border-right: 0.25rem solid transparent;
+                    border-bottom: 0.25rem solid;
+                }
+            }
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+
+            td {
+                border: 1px solid #dddddd;
+                text-align: left;
+                padding: 8px;
+            }
+
+            th {
+                border: 1px solid #dddddd;
+                text-align: left;
+                padding: 8px;
+            }
+        }
+    }
+</style>
+}
 
