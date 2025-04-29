@@ -11,9 +11,10 @@ namespace CoworkingApp.Services.Repositories;
 
 public interface IReservationRepository
 {
-    Task<Reservation> AddReservation(Reservation res);
+    Task<Reservation> AddReservation(Reservation reservation);
     Task<IEnumerable<Reservation>> GetReservations(ReservationsFilter filter);
-    Task<Reservation> UpdateReservation(Reservation res);
+    Task<Reservation> UpdateReservation(Reservation reservation);
+    Task<Reservation> CancelReservation(Reservation reservation);
 }
 
 public class ReservationRepository
@@ -22,7 +23,7 @@ public class ReservationRepository
     ) 
     : IReservationRepository
 {
-    public Task<IEnumerable<Reservation>> GetReservations(ReservationsFilter filter)
+    public async Task<IEnumerable<Reservation>> GetReservations(ReservationsFilter filter)
     {
         var query = context.Reservations.ApplyFilter(filter);
         
@@ -40,14 +41,25 @@ public class ReservationRepository
         }
 
         if (filter.IncludeWorkspace)
+        {
             query = query.Include(r => r.Workspace);
+        }
 
-        return Task.FromResult<IEnumerable<Reservation>>(query);
+        query = (filter.Sort) switch
+        {
+            ReservationSort.PriceAsc => query.OrderBy(x => x.TotalPrice),
+            ReservationSort.PriceDesc => query.OrderByDescending(x => x.TotalPrice),
+            ReservationSort.StartTimeAsc => query.OrderBy(x => x.StartTime),
+            ReservationSort.StartTimeDesc => query.OrderByDescending(x => x.StartTime),
+            ReservationSort.None => query,
+            _ => throw new NotImplementedException(),
+        };
+
+        return query;
     }
 
     public async Task<Reservation> AddReservation(Reservation reservation)
     {
-        
         if (reservation.StartTime <= DateTime.Now || reservation.EndTime <= DateTime.Now)
         {
             throw new ReservationTimeInPastException("Start and end time must be future time.")
@@ -73,8 +85,8 @@ public class ReservationRepository
         var clashingReservationCount = await context.Reservations
             .Where(x => !x.IsCancelled && 
                 x.WorkspaceId == reservation.WorkspaceId && 
-                reservation.StartTime <= x.EndTime && 
-                reservation.EndTime >= x.StartTime)
+                reservation.StartTime < x.EndTime && 
+                reservation.EndTime > x.StartTime)
             .CountAsync();
 
         if (clashingReservationCount != 0)
@@ -112,14 +124,100 @@ public class ReservationRepository
         return addedReservation.Entity;
     }
 
-    public async Task<Reservation> UpdateReservation(Reservation reservation)
+    public async Task<Reservation> CancelReservation(Reservation reservation)
     {
-        var updatedRes = context.Reservations.Update(reservation);
+        reservation.IsCancelled = true;
+        var cancelledReservation = context.Reservations.Update(reservation);
+        await context.SaveChangesAsync();
+        return cancelledReservation.Entity;
+    }
+
+    public async Task<Reservation> UpdateReservation(Reservation newReservation)
+    {
+        var oldReservation = (await context.Reservations
+            .Include(x => x.Workspace)
+            .FirstAsync(x => x.ReservationId == newReservation.ReservationId));
+
+        // check if reservation with id exists
+        if (await context.Reservations.FindAsync(newReservation.ReservationId) == null)
+        {
+            throw new Exception($"Reservation with id {newReservation.ReservationId} not found");
+        }
+
+        // do the same checks as for adding a reservation
+        if (newReservation.StartTime <= DateTime.Now || newReservation.EndTime <= DateTime.Now)
+        {
+            throw new ReservationTimeInPastException("Start and end time must be future time.")
+            {
+                PropertyName = "StartTime"
+            };
+        }
+
+        if (newReservation.StartTime > newReservation.EndTime)
+        {
+            throw new ReservationTimeInPastException("Start time must be before the end time")
+            {
+                PropertyName = "EndTime"
+            };
+        }
+
+        //  SELECT count(*) INTO v_clashing_reservation_count
+        //  FROM reservation r
+        //  WHERE NOT r.is_cancelled
+        //  AND r.workspace_id = NEW.workspace_id
+        //  AND NEW.start_time <= r.end_time AND NEW.end_time >= r.start_time;
+
+        var clashingReservations = await context.Reservations
+            .Where(x => !x.IsCancelled &&
+                x.ReservationId != oldReservation.ReservationId &&
+                x.WorkspaceId == oldReservation.WorkspaceId &&
+                newReservation.StartTime < x.EndTime &&
+                newReservation.EndTime > x.StartTime).ToListAsync();
+
+        if (clashingReservations.Count != 0)
+        {
+            throw new ClashingReservationTimeException("Reservation couldn't be finished because of clashing times with other reservations.");
+        }
+
+        var workspace = await context.Workspaces
+            .Where(w => w.WorkspaceId == oldReservation.WorkspaceId)
+            .Include(w => w.WorkspacePricings)
+            .FirstOrDefaultAsync()
+                ??
+                throw new WorkspaceNotFoundException($"Workspace with id {newReservation.WorkspaceId} not found");
+
+        // find the current pricing (time of reservation in range of the pricing)
+        // if there aren't any throw an error
+        if (!workspace.WorkspacePricings.Any())
+        {
+            throw new NoPricingForWorkspaceException("There is no pricing for this workspace");
+        }
+
+        var workspacePricing = workspace.WorkspacePricings.MaxBy(p => p.ValidFrom)
+            ??
+            throw new ConstraintException($"Workspace with id {newReservation.WorkspaceId} doesn't have currently have a valid pricing.");
+
+        var totalPrice = workspacePricing.PricePerHour * (decimal)(newReservation.EndTime - newReservation.StartTime).TotalHours;
+
+        oldReservation.PricingId = workspacePricing.WorkspacePricingId;
+        oldReservation.TotalPrice = totalPrice;
+        oldReservation.StartTime = newReservation.StartTime;
+        oldReservation.EndTime = newReservation.EndTime;
+
+        var updatedRes = context.Reservations.Update(oldReservation);
         await context.SaveChangesAsync();
         return updatedRes.Entity;
     }
 }
 
+public enum ReservationSort
+{
+    None,
+    PriceDesc,
+    PriceAsc,
+    StartTimeDesc,
+    StartTimeAsc,
+}
 public class ReservationsFilter : FilterBase
 {
     [CompareTo(nameof(Reservation.ReservationId))] 
@@ -137,13 +235,22 @@ public class ReservationsFilter : FilterBase
     public DateTime? EndTime { get; set; }
 
     public NullableRangeFilter<decimal> TotalPrice { get; set; } = new();
-    [CompareTo(nameof(Reservation.PricingId))] public int? PricingId { get; set; }
+
+    [CompareTo(nameof(Reservation.PricingId))] 
+    public int? PricingId { get; set; }
+
     public RangeFilter<DateTime> CreatedAt { get; set; } = new();
-    [CompareTo(nameof(Reservation.CustomerId))] public int? CustomerId { get; set; }
-    [CompareTo(nameof(Reservation.IsCancelled))] public bool? IsCancelled { get; set; }
+
+    [CompareTo(nameof(Reservation.CustomerId))] 
+    public int? CustomerId { get; set; }
+
+    [CompareTo(nameof(Reservation.IsCancelled))] 
+    public bool? IsCancelled { get; set; }
     public bool IncludeCustomer { get; set; } = false;
     public bool IncludeWorkspacePricing { get; set; } = false;
     public bool IncludeWorkspace { get; set; } = false;
+
+    public ReservationSort Sort { get; set; } = ReservationSort.None;
 }
 
 

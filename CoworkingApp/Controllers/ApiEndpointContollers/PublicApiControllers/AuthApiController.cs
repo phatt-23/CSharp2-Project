@@ -2,13 +2,14 @@ using System.Security.Claims;
 using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Models.Exceptions;
 using CoworkingApp.Services;
+using CoworkingApp.Types;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CoworkingApp.Controllers.ApiEndpointContollers.PublicApiControllers;
 
-[ApiController]
+[PublicApiController]
 [Route("/api/auth")]
 public class AuthApiController
     (

@@ -6,10 +6,10 @@ namespace CoworkingApp.Models.DtoModels;
 // Data DTOs
 /////////////////////////////////////////////////////////////
 
-
+[PublicDto]
 public class ReservationDto
 {
-    public int Id { get; set; }
+    public int ReservationId { get; set; }
     public int WorkspaceId { get; set; }
     public int CustomerId { get; set; }
     public DateTime StartTime { get; set; }
@@ -17,7 +17,6 @@ public class ReservationDto
     public decimal TotalPrice { get; set; }
     public int? PricingId { get; set; }
 }
-
 
 [AdminDto]
 public class AdminReservationDto : ReservationDto
@@ -35,7 +34,19 @@ public class AdminReservationDto : ReservationDto
 // Request DTOs
 /////////////////////////////////////////////////////////////
 
+// READ
+
+[PublicDto]
 public class ReservationQueryRequestDto : PaginationRequestDto
+{
+    public int? WorkspaceId { get; set; }
+    public DateTime? StartTime { get; set; }
+    public DateTime? EndTime { get; set; }
+    public NullableRangeFilter<decimal> Price { get; set; } = new();
+}
+
+[AdminDto]
+public class AdminReservationQueryRequestDto : ReservationQueryRequestDto
 {
     public int? WorkspaceId { get; set; }
     public int? CustomerId { get; set; }
@@ -45,11 +56,9 @@ public class ReservationQueryRequestDto : PaginationRequestDto
     public int? PricingId { get; set; }
 }
 
-public class AdminReservationQueryRequestDto : ReservationQueryRequestDto
-{
-    
-}
+// CREATE
 
+[PublicDto]
 public class ReservationCreateRequestDto
 {
     public int WorkspaceId { get; set; }
@@ -57,13 +66,23 @@ public class ReservationCreateRequestDto
     public DateTime EndTime { get; set; }
 }
 
-[AdminDto]
+// UPDATE
+
+[PublicDto]
 public class ReservationUpdateRequestDto
 {
-    public int? WorkspaceId { get; set; }
-    public DateTime? StartTime { get; set; }
-    public DateTime? EndTime { get; set; }
-    public bool? IsCancelled { get; set; }
+    public required int ReservationId { get; set; }
+    public required DateTime StartTime { get; set; }
+    public required DateTime EndTime { get; set; }
+}
+
+[AdminDto]
+public class AdminReservationUpdateRequestDto
+{
+    public required int ReservationId { get; set; }
+    public required DateTime StartTime { get; set; }
+    public required DateTime EndTime { get; set; }
+    public required bool IsCancelled { get; set; }
 }
 
 /////////////////////////////////////////////////////////////

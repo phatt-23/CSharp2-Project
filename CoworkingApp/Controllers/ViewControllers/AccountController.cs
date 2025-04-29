@@ -22,7 +22,7 @@ public class AccountController
 
     [HttpPost("login")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Login(UserLoginRequestDto request)
+    public async Task<IActionResult> Login([FromBody] UserLoginRequestDto request)
     {
         if (!ModelState.IsValid) 
             return View(request);

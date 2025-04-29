@@ -14,7 +14,7 @@ namespace CoworkingApp.Controllers.ViewControllers;
 public interface IHomeController
 {
     public Task<IActionResult> Index(); 
-    public Task<IActionResult> Dashboard(); 
+    public Task<IActionResult> Dashboard([FromQuery] ReservationSort reservationSort = ReservationSort.None); 
 }
 
 public class HomeController
@@ -22,8 +22,7 @@ public class HomeController
         IWorkspaceRepository workspaceRepository,
         ICoworkingCenterRepository coworkingCenterRepository,
         IReservationRepository reservationRepository,
-        IUserRepository userRepository,
-        IUserService userService
+        IUserRepository userRepository
     ) 
     : Controller, IHomeController
 {
@@ -52,7 +51,7 @@ public class HomeController
 
     [Authorize]
     [HttpGet("dashboard")]
-    public async Task<IActionResult> Dashboard()
+    public async Task<IActionResult> Dashboard([FromQuery] ReservationSort reservationSort = ReservationSort.None)
     {
         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
@@ -61,6 +60,7 @@ public class HomeController
             CustomerId = userId,
             IsCancelled = false,
             IncludeWorkspace = true,
+            Sort = reservationSort,
         });
 
         var user = (await userRepository.GetUsers(new UserFilter
@@ -72,6 +72,7 @@ public class HomeController
         { 
             Reservations = reservations,
             User = user,
+            ReservationSort = reservationSort,
         });
     }
 

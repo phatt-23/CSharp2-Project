@@ -1,73 +1,123 @@
 @model CoworkingApp.Models.ViewModels.HomeDashboardViewModel;
 @using System.Security.Claims;
+@using CoworkingApp.Models.DataModels
+@using CoworkingApp.Services.Repositories
 
 @{
     ViewData["Title"] = "User Dashboard";
 }
 
-<h2>User Dashboard</h2>
+<page id="reservation-index-page">
 
-<p>
-    <strong>Email:</strong> @Model.User.Email
-</p> 
+<h2>User Dashboard</h2>
+<p><strong>Email:</strong> @Model.User.Email</p> 
 
 <hr />
 
-<page id="reservation-index-page">
-    <h3>Reservations</h3>
+<h3>Reservations</h3>
 
-    <a asp-controller="Reservation" asp-action="Create">New reservation</a>
+<section id="reservations-top-panel">
+     @using (Html.BeginForm(
+        actionName: "Dashboard",
+        controllerName: "Home",
+        method: FormMethod.Get))
+     {
+         @Html.LabelFor(m => m.ReservationSort, "Sort by:")
 
-    <!-- Display the error messages if there are any -->
-    @if (ViewData.ModelState != null && ViewData.ModelState.Values.Any(v => v.Errors.Count > 0))
-    {
-        <div class="alert alert-danger">
-            <h3>Error</h3>
-            <ul>
-                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-                {
-                    <li>@error.ErrorMessage</li>
-                }
-            </ul>
-        </div>
-    }
+         @Html.DropDownListFor(
+             m => m.ReservationSort,
+             selectList: new SelectList(new[] {
+                 new { Value=ReservationSort.None.ToString(), Text="None" },
+                 new { Value=ReservationSort.PriceDesc.ToString(), Text="Price: High to Low" },
+                 new { Value=ReservationSort.PriceAsc.ToString(), Text="Price: Low to High" },
+                 new { Value=ReservationSort.StartTimeDesc.ToString(), Text="Start Time: High to Low" },
+                 new { Value=ReservationSort.StartTimeAsc.ToString(), Text="Start Time: Low to High" },
+             }, "Value", "Text", Model.ReservationSort),
+             htmlAttributes: new { onchange = "this.form.submit()" })
+     }
 
-    <table>
-        <thead>
-            <th>Workspace</th>
-            <th>Start Time</th>
-            <th>End Time</th>
-            <th>Price</th>
-            <th>Created At</th>
-            <th>Has Taken Place</th>
-            <th>Actions</th>
-        </thead>
-        <tbody>
-            @foreach (var reservation in Model.Reservations.OrderBy(x => x.StartTime))
+    @Html.ActionLink(
+        linkText: "New reservation", 
+        actionName: "Create",
+        controllerName: "Reservation", 
+        routeValues: null)
+</section>
+
+<!-- Display the error messages if there are any -->
+@if (ViewData.ModelState != null && ViewData.ModelState.Values.Any(v => v.Errors.Count > 0))
+{
+    <div class="alert alert-danger">
+        <h3>Error</h3>
+        <ul>
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
             {
-                <tr>
-                    <td><a asp-controller="Workspace" asp-action="Detail" asp-route-id="@reservation.WorkspaceId">@reservation.Workspace.Name</a></td>
-                    <td>@reservation.StartTime</td>
-                    <td>@reservation.EndTime</td>
-                    <td>@(reservation.TotalPrice)$</td>
-                    <td>@reservation.CreatedAt</td>
-                    <td>@(reservation.StartTime >= DateTime.Now ? "No" : "Yes")</td>
-                    <td>
-                        <a asp-controller="Reservation" asp-action="Detail" asp-route-id="@reservation.ReservationId">Detail</a>
-                        <form method="post" asp-action="Cancel" asp-route-id="@reservation.ReservationId">
-                            <button disabled="@(reservation.StartTime >= DateTime.Now ? false : true)" type="submit">
-                                Cancel
-                            </button>
-                        </form>
-                    </td>
-                </tr>
+                <li>@error.ErrorMessage</li>
             }
-        </tbody>
-    </table>
+        </ul>
+    </div>
+}
+
+<table>
+    <thead>
+        <th>Workspace</th>
+        <th>Start Time</th>
+        <th>End Time</th>
+        <th>Price</th>
+        <th>Created At</th>
+        <th>Has Taken Place</th>
+        <th>Actions</th>
+    </thead>
+    <tbody>
+        @foreach (var reservation in Model.Reservations)
+        {
+            <tr>
+                <td><a asp-controller="Workspace" asp-action="Detail" asp-route-id="@reservation.WorkspaceId">@reservation.Workspace.Name</a></td>
+                <td>@reservation.StartTime</td>
+                <td>@reservation.EndTime</td>
+                <td>@(reservation.TotalPrice)$</td>
+                <td>@reservation.CreatedAt</td>
+                <td>@(reservation.StartTime >= DateTime.Now ? "No" : "Yes")</td>
+                <td>
+                    @Html.ActionLink(
+                        linkText: "Detail", 
+                        actionName: "Detail", 
+                        controllerName: "Reservation", 
+                        routeValues: new { id = reservation.ReservationId })
+                     
+                    @Html.ActionLink(
+                        linkText: "Edit", 
+                        actionName: "Edit", 
+                        controllerName: "Reservation",
+                        routeValues: new { id = reservation.ReservationId },
+                        htmlAttributes: new { style = reservation.HasStarted() ? "display:none;" : "" })
+
+                    @using (Html.BeginForm(
+                        actionName: "Cancel", 
+                        controllerName: "Reservation", 
+                        routeValues: new { id = reservation.ReservationId }, 
+                        method: FormMethod.Post, 
+                        antiforgery: true,
+                        htmlAttributes: new { @styles = reservation.HasStarted() ? "display:none;" : "display:inline;" }))
+                    {
+                        <button disabled="@reservation.HasStarted()" type="submit">
+                            Cancel
+                        </button>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
 </page>
 
 @section Styles {
     <style>
+        #reservation-index-page
+        #reservations-top-panel {
+            display: flex;
+            justify-content: space-between;
+        }
+
         #reservation-index-page table {
             border-collapse: collapse;
             width: 100%;

@@ -1,6 +1,7 @@
 using AutoMapper;
 using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Services;
+using CoworkingApp.Types;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CoworkingApp.Controllers.ApiEndpointContollers.PublicApiControllers;
@@ -12,7 +13,7 @@ public interface IWorkspaceStatusesApi
 } 
 
 
-[ApiController]
+[PublicApiController]
 [Route("/api/workspace-status")]
 public class WorkspaceStatusesApiController
     (

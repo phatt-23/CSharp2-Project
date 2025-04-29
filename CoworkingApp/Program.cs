@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text;
 using AutoFilterer.Swagger;
 using AutoMapper;
@@ -5,21 +6,111 @@ using CoworkingApp.Data;
 using CoworkingApp.Middlewares;
 using CoworkingApp.Services;
 using CoworkingApp.Services.Repositories;
+using CoworkingApp.Types;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Scalar.AspNetCore;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 
 namespace CoworkingApp;
 
+public record ApiMethodTag(string Tag);
+
+public enum ApiParameterBoundLocation
+{ 
+    Query,
+    Body,
+}
+
+public class ApiMethodParameter 
+{ 
+    public required string Name { get; set; }
+    public required ApiParameterBoundLocation Location { get; set; }
+    public required ApiParameterSchema Schema { get; set; }
+}
+
+public class ApiPathMethodDescription
+{
+    public required HttpMethod HttpMethod { get; set; }
+    public required List<ApiMethodTag> Tags { get; set; }
+    public required List<ApiMethodParameter> Parameters { get; set; }
+}
+
+public class ApiPathDescription 
+{
+    public required List<ApiPathMethodDescription> Methods { get; set; }
+}
+
+
 internal static class Program
 {
+    private static bool IsComplexType(Type type)
+    {
+        if (type.IsPrimitive
+            || type == typeof(string)
+            || type == typeof(DateTime)
+            || type == typeof(decimal))
+        { 
+            return false;
+        }
+
+        if (type.IsGenericType && 
+            type.GetGenericTypeDefinition() == typeof(Nullable<>))
+        {
+            return IsComplexType(Nullable.GetUnderlyingType(type)!);
+        }
+
+        return true;
+    }
+
+    private static void GetJsonSpecification()
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+
+        var apiControllers = assembly
+            .GetTypes()
+            .Where(t => t.IsClass && t.GetCustomAttribute<ApiControllerAttribute>() != null);
+
+        foreach (var controller in apiControllers.Where(x => x.Name.Contains("Auth")))
+        {
+            Console.WriteLine(controller.Name);
+
+            var actions = controller.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+
+            foreach (var action in actions)
+            {
+                Console.WriteLine("\t" + "Action: " + action.Name);
+                var parameters = action.GetParameters();
+                foreach(var parameter in parameters) 
+                { 
+                    Console.WriteLine(
+                        "\t\t" + 
+                        parameter.Name + ": " + 
+                        parameter.ParameterType.Name);
+
+                    if (IsComplexType( parameter.ParameterType ))
+                    {
+
+                    }
+                }
+
+                Console.WriteLine("\t\t" + "=>" + action.ReturnType.Name);
+            }
+        }
+
+    }
+
     private static void Main(string[] args)
     {
+        GetJsonSpecification();
+        return;
+
         /////////////////////////////////////////////////////////////////////////////
         // Services /////////////////////////////////////////////////////////////////
         /////////////////////////////////////////////////////////////////////////////
@@ -48,6 +139,10 @@ internal static class Program
 
         builder.Services.AddAuthorization();
         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddCookie(options =>
+            {
+                options.AccessDeniedPath = "account/login";  
+            })
             .AddJwtBearer(options =>
             {
                 options.TokenValidationParameters = new TokenValidationParameters()

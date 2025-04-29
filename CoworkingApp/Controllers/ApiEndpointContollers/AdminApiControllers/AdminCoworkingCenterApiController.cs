@@ -5,7 +5,7 @@ using CoworkingApp.Types;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CoworkingApp.Controllers.APIEndpoints.Admin;
+namespace CoworkingApp.Controllers.ApiEndpointContollers.AdminApiControllers;
 
 public interface IAdminCoworkingCentersApi
 {
@@ -14,7 +14,6 @@ public interface IAdminCoworkingCentersApi
     Task<ActionResult<AdminCoworkingCenterDto>> UpdateCenter(int coworkingCenterId, [FromBody] CoworkingCenterUpdateRequestDto request);
 }
 
-[ApiController]
 [AdminApiController]
 [Route("/api/admin/coworking-center")]
 public class AdminCoworkingCenterApiController

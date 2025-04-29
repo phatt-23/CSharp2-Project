@@ -14,7 +14,7 @@
         <ul>
             @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
             {
-                <li>@error.ErrorMessage</li>
+                <li class="alert-danger">@error.ErrorMessage</li>
             }
         </ul>
     </div>
@@ -25,13 +25,19 @@
 <form method="post" asp-action="Create">
     <div class="form-row">
         <label asp-for="@Model.Request.WorkspaceId">Workspace</label>
-        <select asp-for="@Model.Request.WorkspaceId">
+        <select id="workspaceSelect" asp-for="@Model.Request.WorkspaceId">
             <option value="">-- select workspace --</option>
             @foreach(var ws in Model.Workspaces)
             {
                 <option value="@ws.WorkspaceId">@ws.Name</option>
             }
         </select>
+
+        <!-- the link that will update on change -->
+        <a id="workspaceDetailLink" href="#" style="display:none; margin-left:1rem;" target="_blank">
+            View workspace
+        </a>
+
         <span class="field-error" asp-validation-for="@Model.Request.WorkspaceId"></span>
     </div>
    
@@ -55,13 +61,44 @@
         <span class="field-error" asp-validation-for="@Model.Request.EndTime"></span>
     </div>
     
-    <div class="form-controls">
+    <menu>
         <button type="submit">Create</button>
-    </div>
+    </menu>
 </form>
+
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var select = document.getElementById('workspaceSelect');
+            var link = document.getElementById('workspaceDetailLink');
+
+            select.addEventListener('change', function (e) {
+                var id = e.target.value;
+            
+                if (id) {
+                    // build the URL to your detail page
+                    link.href = `/workspace/${id}`
+                    link.style.display = 'inline';
+                } else {
+                    link.style.display = 'none';
+                }
+          });
+
+          // on page?load, in case there’s already a selected value
+          select.dispatchEvent(new Event('change'));
+        });
+    </script>
+}
 
 @section Styles {
     <style>
+        menu {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.25rem;
+        }
+
         .form-row {
             display: flex;
             align-items: center;

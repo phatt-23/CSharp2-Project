@@ -1,16 +1,17 @@
 @using CoworkingApp.Services
+@using CoworkingApp.Services.Repositories
 @model CoworkingApp.Models.ViewModels.WorkspaceIndexViewModel;
 
 @{
     ViewBag.Title = "Workspaces";
     Layout = "_Layout";
-    
+
     ViewBag.Title = "Coworking Centers";
     Layout = "_Layout";
 
     var pageCount = (int)Math.Ceiling(Model.Workspaces.Count() / (decimal)Model.Pagination.PageSize);
     var paginatedWorkspaces = Pagination.Paginate(Model.Workspaces, Model.Pagination.PageNumber, Model.Pagination.PageSize).ToList();
-    
+
     // send this data to the js side below to add them onto the leaflet map
     var workspaceData = paginatedWorkspaces.AsQueryable()
         .Select(w => new {
@@ -26,34 +27,34 @@
 
 @section Scripts {
     <script>
-    let centersMap;
+        let centersMap;
 
-    document.addEventListener("DOMContentLoaded", async function () {
+        document.addEventListener("DOMContentLoaded", async function () {
         centersMap = L.map( $('#centers-map')[0] ).setView([50.0755, 14.4378], 2)  // prague
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(centersMap)
 
         const workspaces = @Html.Raw(workspaceJson)  // deserialize center data from Razor
 
         workspaces.forEach(ws => {
-            L.marker([ws.Address.Latitude, ws.Address.Longitude]).addTo(centersMap)
-                .bindPopup(`
-                    <strong><a href='/workspace/${ws.WorkspaceId}'>${ws.Name}</a></strong>
-                    <br>
-                    <p><strong>${ws.AddressDisplayName}</strong></p>
-                    <p>${ws.Description}</p>
-                    <a align='right' href='/workspace/${ws.WorkspaceId}'>View detail</a>
-                `)
+        L.marker([ws.Address.Latitude, ws.Address.Longitude]).addTo(centersMap)
+        .bindPopup(`
+        <strong><a href='/workspace/${ws.WorkspaceId}'>${ws.Name}</a></strong>
+        <br>
+        <p><strong>${ws.AddressDisplayName}</strong></p>
+        <p>${ws.Description}</p>
+        <a align='right' href='/workspace/${ws.WorkspaceId}'>View detail</a>
+        `)
         })
-    })
+        })
 
-    function seeOnMap(latitude, longitude) {
+        function seeOnMap(latitude, longitude) {
         centersMap.flyTo([latitude, longitude], 12, { duration: 1 });
-    }
-</script>
+        }
+    </script>
 }
 
 <main id="workspace-index">
@@ -64,28 +65,49 @@
         <div id="centers-map" style="height: 400px;"></div>
     </section>
 
-    <!-- pagination -->
-    <section id="pagination-section">
-        @Html.ActionLink("back", "Index", "Workspace", new
-        {
-            PageNumber = Math.Max(Model.Pagination.PageNumber - 1, 1), 
-            PageSize = Model.Pagination.PageSize
-        })
-        @for (var i = 1; i <= pageCount; i++)
-        {
-            if (i == Model.Pagination.PageNumber) 
+    <div id="sort-and-pagination">
+        <section>
+            @using (Html.BeginForm(
+                actionName: "Index",
+                controllerName: "Workspace",
+                method: FormMethod.Get))
             {
-                <u>
-                    <b>@Html.ActionLink(i.ToString(), "Index", "Workspace", new { PageNumber = i, Model.Pagination.PageSize })</b>
-                </u>
+                @Html.LabelFor(m => m.Sort, "Sort by:")
+                @Html.DropDownListFor(
+                    m => m.Sort,
+                    new SelectList(new[] {
+                        new { Value="None", Text="None" },
+                        new { Value="PriceDescending", Text="Price: High to Low" },
+                        new { Value="PriceAscending", Text="Price: Low to High" }
+                    }, "Value", "Text", Model.Sort),
+                    new { onchange = "this.form.submit()" }
+                )
             }
-            else
+        </section>
+
+        <!-- pagination -->
+        <section id="pagination-section">
+            @Html.ActionLink("back", "Index", "Workspace", new
             {
-                @Html.ActionLink(i.ToString(), "Index", "Workspace", new { PageNumber = i, Model.Pagination.PageSize })
+                PageNumber = Math.Max(Model.Pagination.PageNumber - 1, 1), 
+                PageSize = Model.Pagination.PageSize
+            })
+            @for (var i = 1; i <= pageCount; i++)
+            {
+                if (i == Model.Pagination.PageNumber) 
+                {
+                    <u>
+                        <b>@Html.ActionLink(i.ToString(), "Index", "Workspace", new { PageNumber = i, Model.Pagination.PageSize })</b>
+                    </u>
+                }
+                else
+                {
+                    @Html.ActionLink(i.ToString(), "Index", "Workspace", new { PageNumber = i, Model.Pagination.PageSize })
+                }
             }
-        }
-        @Html.ActionLink("next", "Index", "Workspace", new { PageNumber = Math.Min(Model.Pagination.PageNumber + 1, pageCount), PageSize = Model.Pagination.PageSize })
-    </section>
+            @Html.ActionLink("next", "Index", "Workspace", new { PageNumber = Math.Min(Model.Pagination.PageNumber + 1, pageCount), PageSize = Model.Pagination.PageSize })
+        </section>
+    </div>
     
     @if (Model.Workspaces.Any())
     {
@@ -99,6 +121,7 @@
                     <p>@ws.Description</p>
                     <p><strong>Coworking Center:</strong> @ws.CoworkingCenter.Name</p>
                     <p><strong>Address:</strong> @ws.CoworkingCenter.Address.StreetAddress, @ws.CoworkingCenter.Address.City.Name, @ws.CoworkingCenter.Address.City.Country.Name</p>
+                    <p><strong>Price:</strong> @(ws.WorkspacePricings.MaxBy(x => x.ValidFrom)!.PricePerHour)$ per hour</p>
                     <menu class="workspace-card-controls">
                         <a asp-controller="Workspace" asp-action="Detail" asp-route-id="@ws.WorkspaceId">View Details</a>
                         <a href="#map-section" onclick="seeOnMap(@ws.CoworkingCenter.Address.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture), @ws.CoworkingCenter.Address.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture))">See on map</a>
@@ -116,18 +139,19 @@
 
 
 @section Styles {
-    <style>
+<style>
 #workspace-index {
     display: flex;
     flex-direction: column;
 
-    #pagination-section {
+    #sort-and-pagination {
         display: flex;
-        align-items: center;  
-        gap: 0.75rem;
-        margin-top: 0.75rem;    
-        margin-left: auto;
+        justify-content: space-between;
+        margin-top: 2rem;
+    }
 
+    #pagination-section {
+        gap: 0.75rem;
         a {
             text-decoration: none;
         }

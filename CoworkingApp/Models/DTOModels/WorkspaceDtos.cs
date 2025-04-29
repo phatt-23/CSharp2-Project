@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
+using AutoFilterer.Enums;
 using CoworkingApp.Models.DataModels;
+using CoworkingApp.Services.Repositories;
 
 namespace CoworkingApp.Models.DtoModels;
 
@@ -71,12 +73,18 @@ public class WorkspaceUpdateRequestDto
     public int? CoworkingCenterId { get; set; }
 }
 
+[PublicDto]
+public class WorkspaceSortRequestDto
+{
+    public WorkspaceSort Sort;
+}
+
 
 ////////////////////////////////////////////////////////////
 // Response DTOs
 ////////////////////////////////////////////////////////////
 
- 
+
 public class WorkspacesResponseDto : PaginationResponseDto
 {
     public required IEnumerable<WorkspaceDto> Workspaces { get; set; }

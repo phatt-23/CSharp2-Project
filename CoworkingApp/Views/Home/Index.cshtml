@@ -14,31 +14,6 @@
 
     string centersJson = System.Text.Json.JsonSerializer.Serialize(centersData);
 }
-@section Scripts {
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const container = document.querySelector('section[aria-labelledby="home-index-map"] > div')
-        const map = L.map(container).setView([50.0755, 14.4378], 2)  // prague
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map)
-
-        const centers = @Html.Raw(centersJson)  // deserialize center data from Razor
-
-        centers.forEach(center => {
-            L.marker([center.Address.Latitude, center.Address.Longitude]).addTo(map)
-                .bindPopup(`
-                    <strong><a href='/coworking-center/${center.CoworkingCenterId}'>${center.Name}</a></strong>
-                    <br>
-                    <p>${center.Description}</p>
-                    <a align='right' href='/coworking-center/${center.CoworkingCenterId}'>View detail</a>
-                    `)
-        })
-    })
-</script>
-}
-
 
 <main id="home-index">
 <section>
@@ -77,11 +52,36 @@
     <section aria-labelledby="goto-coworking-centers-index">
         <a asp-controller="CoworkingCenter" asp-action="Index">See all coworking centers</a>
     </section>
-    <section aria-labelledby="home-index-map" aria-label="Map of coworking centers">
+    <section aria-label="Map of coworking centers">
         <div id="map" style="height: 400px;"></div>
     </section>
 </section>
 </main>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const container = document.getElementById('map')
+            const map = L.map(container).setView([50.0755, 14.4378], 2)  // prague
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map)
+
+            const centers = @Html.Raw(centersJson)  // deserialize center data from Razor
+
+            centers.forEach(center => {
+                L.marker([center.Address.Latitude, center.Address.Longitude]).addTo(map)
+                    .bindPopup(`
+                        <strong><a href='/coworking-center/${center.CoworkingCenterId}'>${center.Name}</a></strong>
+                        <br>
+                        <p>${center.Description}</p>
+                        <a align='right' href='/coworking-center/${center.CoworkingCenterId}'>View detail</a>
+                        `)
+            })
+        })
+    </script>
+}
 
 
 @section Styles {<style>

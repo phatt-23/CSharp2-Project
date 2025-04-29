@@ -1,5 +1,7 @@
 using CoworkingApp.Models.DataModels;
 using CoworkingApp.Models.DtoModels;
+using CoworkingApp.Models.Misc;
+using CoworkingApp.Services.Repositories;
 
 namespace CoworkingApp.Models.ViewModels;
 
@@ -7,19 +9,17 @@ public class WorkspaceIndexViewModel
 {
     public IEnumerable<Workspace> Workspaces { get; set; } = [];
     public PaginationRequestDto Pagination { get; set; } = null!;
+    public required WorkspaceSort Sort { get; set; }
 }
 
-public class WorkspaceDetailViewModel 
+public class WorkspaceDetailViewModel : TimelineData
 {
-    public Workspace Workspace { get; set; } = null!;
-    public IEnumerable<WorkspaceHistory> Histories { get; set; } = null!;
-    public IEnumerable<Reservation> Reservations { get; set; } = null!; 
-    public CoworkingCenter CoworkingCenter { get; set; } = null!;
+    public required IEnumerable<WorkspaceHistory> Histories { get; set; }
+    public required WorkspaceHistory? LatestWorkspaceHistory { get; set; }
+    public required CoworkingCenter CoworkingCenter { get; set; }
 }
 
-public class WorkspaceReserveViewModel 
+public class WorkspaceReserveViewModel : TimelineData
 {
-    public Workspace Workspace { get; set; } = null!;
-    public ReservationCreateRequestDto Request { get; set; } = null!;
-    public IEnumerable<Reservation> Reservations { get; set; } = null!;
+    public required ReservationCreateRequestDto Request { get; set; }
 }

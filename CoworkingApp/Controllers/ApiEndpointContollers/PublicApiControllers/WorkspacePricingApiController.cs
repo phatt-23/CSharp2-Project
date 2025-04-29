@@ -1,6 +1,7 @@
 using AutoMapper;
 using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Services;
+using CoworkingApp.Types;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CoworkingApp.Controllers.ApiEndpointContollers.PublicApiControllers;
@@ -10,7 +11,7 @@ public interface IPricingApi
     Task<ActionResult<IEnumerable<WorkspacePricingDto>>> GetPricingsOfWorkspaceByIdAsync(int workspaceId);
 }
 
-[ApiController]
+[PublicApiController]
 [Route("api/workspace-pricing")]
 public class WorkspacePricingApiController
     (

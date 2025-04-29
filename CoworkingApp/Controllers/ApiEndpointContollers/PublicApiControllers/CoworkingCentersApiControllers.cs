@@ -16,7 +16,6 @@ public interface ICoworkingCentersApi
     Task<ActionResult<CoworkingCenterDto>> GetCenterById(int id);
 }
 
-[ApiController]
 [PublicApiController]
 [Route("/api/coworking-center")]
 public class CoworkingCentersApiController

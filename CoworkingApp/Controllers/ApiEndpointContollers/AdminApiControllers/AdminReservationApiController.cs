@@ -5,19 +5,19 @@ using CoworkingApp.Types;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CoworkingApp.Controllers.APIEndpoints.Admin;
+namespace CoworkingApp.Controllers.ApiEndpointContollers.AdminApiControllers;
 
 public interface IAdminReservationApi
 {
-    Task<ActionResult<IEnumerable<AdminReservationDto>>> Get([FromQuery] AdminReservationQueryRequestDto request);
-    Task<ActionResult<AdminReservationDto>> GetById(int id);
-    Task<ActionResult<AdminReservationDto>> Update(int id, [FromBody] ReservationUpdateRequestDto request);
-    Task<ActionResult<AdminReservationDto>> Cancel(int id);
+    Task<ActionResult<IEnumerable<AdminReservationDto>>> GetReservations([FromQuery] AdminReservationQueryRequestDto request);
+    Task<ActionResult<AdminReservationDto>> GetReservationById(int id);
+    Task<ActionResult<AdminReservationDto>> UpdateReservation(int id, [FromBody] AdminReservationUpdateRequestDto request);
+    Task<ActionResult<AdminReservationDto>> CancelReservation(int id);
 }
 
-[ApiController]
 [AdminApiController]
 [Route("api/admin/reservation")]
+[Authorize(Roles = "Admin")]
 public class AdminReservationApiController
     (
         IReservationService reservationService,
@@ -26,12 +26,11 @@ public class AdminReservationApiController
     : Controller, IAdminReservationApi
 {
     [HttpGet]
-    [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<IEnumerable<AdminReservationDto>>> Get([FromQuery] AdminReservationQueryRequestDto request)
+    public async Task<ActionResult<IEnumerable<AdminReservationDto>>> GetReservations([FromQuery] AdminReservationQueryRequestDto request)
     {
         try
         {
-            var reservations = await reservationService.GetReservationsForAdmin(request);
+            var reservations = await reservationService.AdminGetReservations(request);
             var reservationDtos = mapper.Map<IEnumerable<AdminReservationDto>>(reservations);
             return Ok(reservationDtos);
         }
@@ -42,8 +41,7 @@ public class AdminReservationApiController
     }
 
     [HttpGet("{id:int}")]
-    [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<AdminReservationDto>> GetById(int id)
+    public async Task<ActionResult<AdminReservationDto>> GetReservationById(int id)
     {
         try
         {
@@ -58,17 +56,18 @@ public class AdminReservationApiController
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<AdminReservationDto>> Update(int id, [FromBody] ReservationUpdateRequestDto request)
+    public async Task<ActionResult<AdminReservationDto>> UpdateReservation(int id, [FromBody] AdminReservationUpdateRequestDto request)
     {
-        if (!ModelState.IsValid) 
+        if (!ModelState.IsValid)
+        {
             return BadRequest(ModelState);
+        }
 
         try
         {
-            var reservation = await reservationService.UpdateReservation(id, request);
-            var dto = mapper.Map<AdminReservationDto>(reservation);
-            return Ok(dto);
+            var reservation = await reservationService.AdminUpdateReservation(id, request);
+            var reservationDto = mapper.Map<AdminReservationDto>(reservation);
+            return Ok(reservationDto);
         }
         catch (Exception ex)
         {
@@ -77,16 +76,18 @@ public class AdminReservationApiController
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<AdminReservationDto>> Cancel(int id)
+    public async Task<ActionResult<AdminReservationDto>> CancelReservation(int id)
     {
-        if (!ModelState.IsValid) 
+        if (!ModelState.IsValid)
+        {
             return BadRequest(ModelState);
+        }
 
         try
         {
-            var updatedReservation = await reservationService.UpdateReservation(id, new ReservationUpdateRequestDto { IsCancelled = true });
-            return Ok(mapper.Map<AdminReservationDto>(updatedReservation));
+            var canceledReservation = await reservationService.CancelReservation(id);
+            var reservationDto = mapper.Map<AdminReservationDto>(canceledReservation);
+            return Ok(reservationDto);
         }
         catch (Exception ex)
         {

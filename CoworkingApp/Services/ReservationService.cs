@@ -8,14 +8,17 @@ namespace CoworkingApp.Services;
 
 public interface IReservationService
 {
+    // Public
     Task<IEnumerable<Reservation>> GetReservations(ReservationQueryRequestDto request);
-    Task<IEnumerable<Reservation>> GetReservationsForAdmin(AdminReservationQueryRequestDto request);
     Task<Reservation> GetReservationById(int reservationId);
     Task<Reservation> CreateReservation(int customerId, ReservationCreateRequestDto request);
     Task<Reservation> UpdateReservation(int reservationId, ReservationUpdateRequestDto request);
     Task<Reservation> CancelReservation(int reservationId);
-}
 
+    // Admin
+    Task<IEnumerable<Reservation>> AdminGetReservations(AdminReservationQueryRequestDto request);
+    Task<Reservation> AdminUpdateReservation(int reservationId, AdminReservationUpdateRequestDto request);
+}
 
 public class ReservationService
     (
@@ -29,17 +32,15 @@ public class ReservationService
         var reservations = await repository.GetReservations(new ReservationsFilter
         {
             WorkspaceId = request.WorkspaceId,
-            CustomerId = request.CustomerId,
             StartTime = request.StartTime,
             EndTime = request.EndTime,
             TotalPrice = request.Price,
-            PricingId = request.PricingId,
         });
 
         return reservations;
     }
 
-    public async Task<IEnumerable<Reservation>> GetReservationsForAdmin(AdminReservationQueryRequestDto request)
+    public async Task<IEnumerable<Reservation>> AdminGetReservations(AdminReservationQueryRequestDto request)
     {
         return await GetReservations(request);
     }
@@ -63,32 +64,34 @@ public class ReservationService
 
     public async Task<Reservation> UpdateReservation(int reservationId, ReservationUpdateRequestDto request)
     {
+        return await repository.UpdateReservation(mapper.Map<Reservation>(request));
+    }
+
+    public async Task<Reservation> AdminUpdateReservation(int reservationId, AdminReservationUpdateRequestDto request)
+    {
         var reservation = await GetReservationById(reservationId);
-
-        if (request.WorkspaceId != null)    reservation.WorkspaceId = request.WorkspaceId.Value;
-        if (request.StartTime != null)      reservation.StartTime = request.StartTime.Value;
-        if (request.EndTime != null)        reservation.EndTime = request.EndTime.Value;
-        if (request.IsCancelled != null)    reservation.IsCancelled = request.IsCancelled.Value;
-
-        return await repository.UpdateReservation(reservation);
+        return await repository.UpdateReservation(mapper.Map<Reservation>(request));
     }
 
     public async Task<Reservation> CancelReservation(int reservationId)
     {
-        var reservations = await repository.GetReservations(new ReservationsFilter { Id = reservationId });
-        
-        var reservation = reservations.FirstOrDefault();
+        var reservation = (await repository.GetReservations(new ReservationsFilter 
+        { 
+            Id = reservationId 
+        })).FirstOrDefault();
 
         if (reservation == null)
+        { 
             throw new NotFoundException($"Reservation with id {reservationId} not found");
+        }
 
         if (reservation.StartTime <= DateTime.Now)
+        {
             throw new ReservationAlreadyTakingPlaceException("Cannot cancel reservation that is already taking place");
+        }
 
-        reservation.IsCancelled = true;
-        return await repository.UpdateReservation(reservation);
+        return await repository.CancelReservation(reservation);
     }
 }
-
 
 public class ReservationAlreadyTakingPlaceException(string m) : Exception(m);

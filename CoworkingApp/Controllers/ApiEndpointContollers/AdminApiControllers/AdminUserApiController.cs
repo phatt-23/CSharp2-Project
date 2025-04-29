@@ -5,7 +5,7 @@ using CoworkingApp.Services;
 using CoworkingApp.Types;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CoworkingApp.Controllers.APIEndpoints.Admin;
+namespace CoworkingApp.Controllers.ApiEndpointContollers.AdminApiControllers;
 
 public interface IAdminUserApi
 { 
@@ -14,7 +14,6 @@ public interface IAdminUserApi
     Task<ActionResult<UserDto>> RemoveUser(int userId);
 }
 
-[ApiController]
 [AdminApiController]
 [Route("api/admin/user")]
 public class AdminUserApiController

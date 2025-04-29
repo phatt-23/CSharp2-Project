@@ -9,70 +9,74 @@ namespace CoworkingApp.Controllers.ApiEndpointContollers.PublicApiControllers;
 
 public interface IApiDocsApi
 {
-    Task<IActionResult> GetJson([FromQuery] string? url);
-    Task<IActionResult> GetAdminJson([FromQuery] string? url);
+    Task<ActionResult<List<ApiEndpointDescription>>> GetEndpointsJson();
+    Task<ActionResult<List<ApiEndpointDescription>>> GetAdminEndpointsJson();
 }
 
-[ApiController]
+[PublicApiController]
 [Route("/api/docs")]
 public class ApiDocsApiController : Controller, IApiDocsApi
 {
     [HttpGet]
-    public async Task<IActionResult> 
-        GetJson([FromQuery] string? url)
+    public async Task<ActionResult<List<ApiEndpointDescription>>> GetEndpointsJson()
     {
-        if (url != null)
-        {
-            return Ok(new { Message = $"Json specification of API endpoint: {url}" });
-        }
-        else
-        {
-            var endpoints = GetEndpoints();
-            return Ok(endpoints);
-        }
+        var endpoints = GetEndpoints();
+        return Ok(endpoints);
     }
 
     [HttpGet("admin")]
     [Authorize(Roles = "Admin,Moderator")]
-    public async Task<IActionResult> GetAdminJson([FromQuery] string? url)
+    public async Task<ActionResult<List<ApiEndpointDescription>>> GetAdminEndpointsJson()
     {
-        if (url == null)
-        {
-            return Ok(new { Message = "Json specification of every ADMIN API endpoint" });
-        }
-        else
-        {
-            return Ok(new { Message = $"Json specification of this ADMIN API endpoint: {url}" });
-        }
+        var endpoints = GetEndpoints();
+        return Ok(endpoints);
     }
 
 
     private static bool IsComplex(Type type)
     {
-        if (type.IsPrimitive || type == typeof(string) || type == typeof(DateTime) || type == typeof(decimal) || type == typeof(Guid))
+        if (type.IsPrimitive ||
+            type == typeof(string) ||
+            type == typeof(DateTime) ||
+            type == typeof(decimal) ||
+            type == typeof(Guid))
+        {
             return false;
+        }
 
-        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
+        if (type.IsGenericType && 
+            type.GetGenericTypeDefinition() == typeof(Nullable<>))
+        {
             return IsComplex(Nullable.GetUnderlyingType(type)!);
+        }
 
         return true;
     }
 
     private static string UnwrapReturnType(Type returnType)
     {
-        if (returnType.IsGenericType && typeof(Task).IsAssignableFrom(returnType))
+        if (returnType.IsGenericType && 
+            typeof(Task).IsAssignableFrom(returnType))
+        {
             returnType = returnType.GetGenericArguments().FirstOrDefault() ?? returnType;
+        }
 
-        if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(ActionResult<>))
+        if (returnType.IsGenericType && 
+            returnType.GetGenericTypeDefinition() == typeof(ActionResult<>))
+        {
             returnType = returnType.GetGenericArguments().FirstOrDefault() ?? returnType;
+        }
 
         return returnType.Name;
     }
 
     private static List<ApiFieldDescription> GetFieldsRecursive(Type type, HashSet<Type> visited)
     {
-        if (visited.Contains(type)) // prevent infinite loops in case of cycles
-            return new List<ApiFieldDescription>();
+        // prevent infinite loops in case of cycles
+        if (visited.Contains(type)) 
+        {
+            return [];
+        }
 
         visited.Add(type);
 
@@ -144,10 +148,10 @@ public class ApiDocsApiController : Controller, IApiDocsApi
                     Parameters = method.GetParameters()
                         .Select(p => new ApiParameterDescription
                         {
-                            Name = p.Name,
+                            Name = p.Name!,
                             Type = p.ParameterType.Name,
                             IsComplexType = IsComplex(p.ParameterType),
-                            Fields = IsComplex(p.ParameterType) ? GetFieldsRecursive(p.ParameterType, new HashSet<Type>()) : new List<ApiFieldDescription>()
+                            Fields = IsComplex(p.ParameterType) ? GetFieldsRecursive(p.ParameterType, []) : []
                         }).ToList()
                 };
 

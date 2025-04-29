@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CoworkingApp.Models.DataModels;
 using CoworkingApp.Models.DtoModels;
+using CoworkingApp.Models.Misc;
 using CoworkingApp.Models.ViewModels;
 using CoworkingApp.Services;
 using CoworkingApp.Services.Repositories;
@@ -15,7 +16,9 @@ public class ReservationController
     (
         IReservationService reservationService,
         IReservationRepository reservationRepository,
-        IWorkspaceService workspaceService
+        IWorkspaceService workspaceService,
+        ICoworkingCenterService coworkingCenterService,
+        IWorkspaceHistoryRepository workspaceHistoryRepository
     ) 
     : Controller
 {
@@ -60,7 +63,7 @@ public class ReservationController
     {
         var workspaces = await workspaceService.GetWorkspaces(new ());
         
-        return View(new ReservationCreateGetViewModel 
+        return View(new ReservationCreateGetViewModel
         {
             Workspaces = workspaces,
             Request = new ReservationCreateRequestDto
@@ -79,7 +82,8 @@ public class ReservationController
         {
             var workspaces = await workspaceService.GetWorkspaces(new ());
             
-            return View(new ReservationCreateGetViewModel {
+            return View(new ReservationCreateGetViewModel 
+            {
                 Workspaces = workspaces,
                 Request = request,
             });
@@ -98,9 +102,100 @@ public class ReservationController
 
             var workspaces = await workspaceService.GetWorkspaces(new WorkspaceQueryRequestDto());
 
-            return View(new ReservationCreateGetViewModel {
+            return View(new ReservationCreateGetViewModel 
+            {
                 Workspaces = workspaces,
                 Request = request,
+            });
+        }
+    }
+
+    [HttpGet("{id:int}/edit")]
+    public async Task<ActionResult<Reservation>> Edit(int id)
+    {
+        try
+        {
+            var reservation = await reservationService.GetReservationById(id);
+            var workspace = await workspaceService.GetWorkspaceById(reservation.WorkspaceId);
+            var histories = await workspaceHistoryRepository.GetHistories(new WorkspaceHistoryFilter { WorkspaceId = workspace.WorkspaceId, IncludeStatus = true });
+            var reservations = await reservationRepository.GetReservations(new ReservationsFilter { WorkspaceId = workspace.WorkspaceId });
+            var center = await coworkingCenterService.GetCenterById(workspace.CoworkingCenterId);
+            var segments = TimelineData.ComputeTimelineSegments(reservations, GetUserId(), out double totalHours, out DateTime timelineStartTime, out DateTime timelineEndTime);
+
+            return View(new ReservationEditViewModel
+            {
+                Request = new ReservationUpdateRequestDto
+                {
+                    ReservationId = reservation.ReservationId,
+                    StartTime = reservation.StartTime,
+                    EndTime = reservation.EndTime,
+                },
+                Reservations = reservations.OrderBy(x => x.StartTime),
+                TimelineSegments = segments,
+                TimelineStart = timelineStartTime,
+                TimelineEnd = timelineEndTime,
+                TotalHours = totalHours,
+                Workspace = workspace,
+                LatestWorkspaceHistory = histories.MaxBy(x => x.ChangeAt),
+                PricePerHour = workspace.WorkspacePricings.MaxBy(x => x.ValidFrom)!.PricePerHour,
+                UserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value.TryParseToInt() ?? -1,
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpPost("{id:int}/edit")]
+    public async Task<ActionResult<Reservation>> Edit(int id, ReservationUpdateRequestDto request)
+    {
+        try
+        {
+            var reservation = await reservationService.UpdateReservation(id, request);
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+        catch (Exception ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+
+            var reservation = await reservationService.GetReservationById(id);
+
+            var workspace = await workspaceService.GetWorkspaceById(id);
+
+            var histories = await workspaceHistoryRepository.GetHistories(new WorkspaceHistoryFilter
+            {
+                WorkspaceId = workspace.WorkspaceId,
+                IncludeStatus = true,
+            });
+
+            var reservations = await reservationRepository.GetReservations(new ReservationsFilter
+            {
+                WorkspaceId = workspace.WorkspaceId,
+            });
+
+            var center = await coworkingCenterService.GetCenterById(workspace.CoworkingCenterId);
+
+            var segments = TimelineData.ComputeTimelineSegments(reservations, GetUserId(), out double totalHours, out DateTime timelineStartTime, out DateTime timelineEndTime);
+
+
+            return View(new ReservationEditViewModel
+            {
+                Request = new ReservationUpdateRequestDto
+                {
+                    ReservationId = reservation.ReservationId,
+                    StartTime = request.StartTime,
+                    EndTime = request.EndTime,
+                },
+                Reservations = reservations.OrderBy(x => x.StartTime),
+                TimelineSegments = segments,
+                TimelineStart = timelineStartTime,
+                TimelineEnd = timelineEndTime,
+                TotalHours = totalHours,
+                Workspace = workspace,
+                LatestWorkspaceHistory = histories.MaxBy(x => x.ChangeAt),
+                PricePerHour = workspace.WorkspacePricings.MaxBy(x => x.ValidFrom)!.PricePerHour,
+                UserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value.TryParseToInt() ?? -1,
             });
         }
     }
@@ -116,13 +211,14 @@ public class ReservationController
         catch (ReservationAlreadyTakingPlaceException ex)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
-            return View("Index", await GetReservations());
+            return RedirectToAction("Dashboard", "Home");
         }
     }
 
     private async Task<IEnumerable<Reservation>> GetReservations()
     {
         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
         var reservations = await reservationRepository.GetReservations(new ReservationsFilter() 
         {
             CustomerId = userId,
@@ -132,4 +228,6 @@ public class ReservationController
         
         return reservations;
     }
+
+    private int GetUserId() => User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value.TryParseToInt() ?? -1;
 }

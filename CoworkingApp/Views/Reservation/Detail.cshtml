@@ -1,16 +1,18 @@
+@using CoworkingApp.Models.DataModels
 @model CoworkingApp.Models.ViewModels.ReservationDetailViewModel
 
 @{
     ViewBag.Title = "Reservation Detail";
     Layout = "_Layout";
-
-    // Determine if the reservation has already taken place
-    bool hasTakenPlace = Model.Reservation.EndTime < DateTime.Now;
 }
+
 
 <h2>Your Reservation</h2>
 
-<a asp-controller="Home" asp-action="Dashboard" class="btn btn-secondary">Go to dashboard</a>
+@Html.ActionLink(
+    linkText: "Go to dashboard", 
+    actionName: "Dashboard", 
+    controllerName: "Home")
 
 <section class="reservation-details">
     <h3>Reservation Information</h3>
@@ -38,15 +40,44 @@
         {
             <dd>Cancelled</dd>
         }
-        else if (hasTakenPlace)
+        else if (Model.Reservation.HasEnded())
         {
             <dd>Completed</dd>
+        }
+        else if (Model.Reservation.HasStarted())
+        {
+            <dd>Taking Place</dd>
         }
         else
         {
             <dd>Upcoming</dd>
         }
     </dl>
+
+    <menu>
+        <menuitem>
+            @Html.ActionLink(
+                linkText: "Edit", 
+                actionName: "Edit",
+                controllerName: "Reservation",
+                routeValues: new { id = Model.Reservation.ReservationId },
+                htmlAttributes: new { style = Model.Reservation.HasStarted() ? "display:none;" : "" })
+        </menuitem>
+        <menuitem>
+            @using (Html.BeginForm(
+                actionName: "Cancel",
+                controllerName: "Reservation",
+                routeValues: new { id = Model.Reservation.ReservationId },
+                method: FormMethod.Post,
+                antiforgery: true,
+                htmlAttributes: new { @styles = Model.Reservation.HasStarted() ? "display:none;" : "display:inline;" }))
+            {
+                <button disabled="@Model.Reservation.HasStarted()" type="submit">
+                    Cancel
+                </button>
+            }
+        </menuitem>
+    </menu>
 </section>
 
 <hr />
@@ -54,7 +85,11 @@
 <section class="workspace-details">
     <h3>Workspace Details</h3>
 
-    <a asp-controller="Workspace" asp-action="Detail" asp-route-id="@Model.Workspace.WorkspaceId">Go to workspace</a>
+    @Html.ActionLink(
+        linkText: "Go to workspace",
+        actionName: "Detail", 
+        controllerName: "Workspace",
+        routeValues: new { id = Model.Workspace.WorkspaceId })
 
     <dl>
         <dt>Name</dt>
@@ -86,6 +121,12 @@
 
 @section Styles {
     <style>
+        menu {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
         .reservation-details, .workspace-details {
             margin-bottom: 2rem;
         }

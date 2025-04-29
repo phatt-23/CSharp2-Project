@@ -1,6 +1,7 @@
-﻿namespace CoworkingApp.Types;
+﻿using Microsoft.AspNetCore.Mvc;
 
-[AttributeUsage(AttributeTargets.Class)]
-public class AdminApiControllerAttribute : Attribute
+namespace CoworkingApp.Types;
+
+public class AdminApiControllerAttribute : ApiControllerAttribute
 {
 }

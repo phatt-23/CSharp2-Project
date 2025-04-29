@@ -1,7 +1,5 @@
 using CoworkingApp.Services;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
-using CoworkingApp.Models.DataModels;
 
 namespace CoworkingApp.Models.DtoModels;
 
@@ -19,6 +17,7 @@ public class CoworkingCenterDto
     public decimal Longitude { get; set; }
     public string AddressDisplayName { get; set; } = string.Empty; // Computed flattened address
 }
+
 
 [AdminDto]
 public class AdminCoworkingCenterDto
@@ -60,13 +59,13 @@ public class CoworkingCenterCreateRequestDto
 [AdminDto]
 public class CoworkingCenterUpdateRequestDto
 {
-    [Required] public string Name { get; set; }
-    [Required] public string Description { get; set; } 
-    [Required] public string StreetAddress { get; set; } 
-    [Required] public string District { get; set; } 
-    [Required] public string City { get; set; } 
-    [Required] public string PostalCode { get; set; }
-    [Required] public string Country { get; set; } 
+    [Required] public required string Name { get; set; }
+    [Required] public required string Description { get; set; } 
+    [Required] public required string StreetAddress { get; set; } 
+    [Required] public required string District { get; set; } 
+    [Required] public required string City { get; set; } 
+    [Required] public required string PostalCode { get; set; }
+    [Required] public required string Country { get; set; } 
 }
 
 /////////////////////////////////////////////////////////////////////////////////

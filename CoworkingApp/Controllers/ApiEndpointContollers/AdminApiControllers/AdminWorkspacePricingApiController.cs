@@ -5,7 +5,7 @@ using CoworkingApp.Types;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CoworkingApp.Controllers.APIEndpoints.Admin;
+namespace CoworkingApp.Controllers.ApiEndpointContollers.AdminApiControllers;
 
 public interface IAdminWorkspacePricingApi
 {
@@ -13,7 +13,6 @@ public interface IAdminWorkspacePricingApi
     Task<ActionResult<AdminWorkspacePricingDto>> CreateWorkspacePricingAsync([FromBody] WorkspacePricingCreateRequestDto request);
 }
 
-[ApiController]
 [AdminApiController]
 [Route("api/admin/pricing/")]
 public class AdminWorkspacePricingApiController

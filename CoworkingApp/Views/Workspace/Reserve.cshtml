@@ -2,54 +2,18 @@
 @using System.Globalization;
 @using CoworkingApp.Models.DataModels
 @using System.Security.Claims
+@using CoworkingApp.Models.Misc
 
 @{
     ViewBag.Title = "title";
     Layout = "_Layout";
+}
 
-    var getCurrentPricing = (Workspace w) => w.WorkspacePricings.MaxBy(x => x.ValidFrom);
-    var maxDateTime = (DateTime a, DateTime b) => (a > b) ? a : b;
-    var minDateTime = (DateTime a, DateTime b) => (a < b) ? a : b;
-
-    // the time span of the timeline (max 1 year ahead)
-    var timelineStart = DateTime.Now;
-    var timelineEnd = minDateTime(Model.Reservations.Where(x => !x.IsCancelled).Max(x => x.EndTime), DateTime.Today.AddYears(1));
-
-    // sorted reservations by time, filtered by timeline span
-    var reservations = Model.Workspace.Reservations
-        .OrderBy(r => r.StartTime)
-        .Where(x => !x.IsCancelled && timelineStart <= x.EndTime && x.StartTime <= timelineEnd).ToList();
-
-    // build segments of free and reserved times
-    var segments = new List<(int? ReservationId, DateTime Start, DateTime End, bool IsReserved, bool BelongsToUser)>();
-    var cursor = timelineStart;
-
-    var userId = int.Parse(User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)!.Value);
-
-    foreach (var res in reservations)
+@functions {
+    DateTime MaxDateTime(DateTime a, DateTime b)
     {
-        var reservationBelongsToUser = res.CustomerId == userId;
-
-        // free before this reservation?
-        if (cursor < res.StartTime)
-        {
-            segments.Add((res.ReservationId, cursor, maxDateTime(timelineStart, res.StartTime), false, reservationBelongsToUser));
-        }
-
-        // this reserved segment
-        segments.Add((res.ReservationId, maxDateTime(timelineStart, res.StartTime), res.EndTime, true, reservationBelongsToUser));
-
-        // next
-        cursor = res.EndTime;
+        return a > b ? a : b;
     }
-
-    // free after last reservation?
-    if (cursor < timelineEnd)
-    {
-        segments.Add((null, cursor, timelineEnd, false, false));
-    }
-
-    var totalHours = (timelineEnd - timelineStart).TotalHours;
 }
 
 <h2>@Model.Workspace.Name</h2>
@@ -57,7 +21,7 @@
 <h4>Make a reservation</h4>
 
 <p>
-    <strong>Price:</strong> @(getCurrentPricing(Model.Workspace)!.PricePerHour)$ per hour
+    <strong>Price:</strong> @(Model.PricePerHour)$ per hour
 </p>
 
 @if (ViewData["ErrorMessage"] != null)
@@ -65,33 +29,30 @@
     <p class="alert-danger">@ViewData["ErrorMessage"]</p>
 }
 
-<form id="workspace-reservation-form" method="post" asp-controller="Workspace" asp-action="Reserve">
+@using (Html.BeginForm(actionName: "Reserve", controllerName: "Workspace", method: FormMethod.Post))
+{
     <input type="hidden" asp-for="@Model.Request.WorkspaceId" value="@Model.Request.WorkspaceId" />
 
     <div class="form-row">
         <label asp-for="@Model.Request.StartTime">Start time</label>
-        <input 
-        type="datetime-local" 
-        asp-for="@Model.Request.StartTime" 
-        value="@Model.Request.StartTime.ToString("s")"
-        />
+        <input type="datetime-local" 
+            asp-for="@Model.Request.StartTime" 
+            value="@Model.Request.StartTime.ToString("s")"/>
         <span asp-validation-for="@Model.Request.StartTime"></span>
     </div>
 
     <div class="form-row">
         <label asp-for="@Model.Request.EndTime">End time</label>
-        <input 
-        type="datetime-local" 
-        asp-for="@Model.Request.EndTime"
-        value="@Model.Request.EndTime.ToString("s")"
-        />
+        <input type="datetime-local" 
+            asp-for="@Model.Request.EndTime"
+            value="@Model.Request.EndTime.ToString("s")"/>
         <span asp-validation-for="@Model.Request.EndTime"></span>
     </div>
 
     <div class="form-controls">
         <button type="submit">Create</button>
     </div>
-</form>
+}
 
 <hr />
 
@@ -101,61 +62,69 @@
 
     <div class="timeline-wrapper">
         <ol class="timeline">
-            @foreach (var (segment, index) in segments.WithIndex())
+            @foreach (var (segment, index) in Model.TimelineSegments.WithIndex())
             {
-                var widthPercent = (segment.End - segment.Start).TotalHours / totalHours * 100;  // calculate width %
-                var tooltipText = $"{index + 1}) {segment.Start.ToString()} - {segment.End.ToString()}";
+                var tooltipText = 
+                    $"<strong>{index + 1})</strong>" +
+                    $"<p><strong>Start:</strong> {segment.Start:f}</p>" +
+                    $"<p><strong>End:</strong> {segment.End:f}</p>";
 
-                <li class="segment @(segment.IsReserved ? "reserved" : "free")"
-                style="width:@widthPercent.ToString(System.Globalization.CultureInfo.InvariantCulture)%"
+                <li 
+                    class="segment @(segment.IsReserved ? "reserved" : "free")"
+                    style="width:@((segment.Width * 100).ToString(System.Globalization.CultureInfo.InvariantCulture))%"
                 >
                     @if (segment.IsReserved)
                     {
                         if (segment.BelongsToUser)
                         {
-                            <a asp-controller="Reservation" asp-action="Detail" asp-route-id="@segment.ReservationId">
-                                @(index + 1)
-                            </a>
+                            @Html.ActionLink(
+                                linkText: $"{index + 1}",
+                                actionName: "Detail",
+                                controllerName: "Reservation",
+                                routeValues: new { id = segment.ReservationId })
                         }
                         else
                         {
-                            <a>
-                                @(index + 1)
-                            </a>
+                            <a>@(index + 1)</a>
                         }
                     }
                     else
                     {
-                        @if (User.Identity != null && User.Identity.IsAuthenticated)
+                        @if (User.IsAuthenticated())
                         {
-                            <a asp-controller="Workspace" asp-action="Reserve"
-                            asp-route-id="@Model.Workspace.WorkspaceId"
-                            asp-route-startTime="@maxDateTime(segment.Start, DateTime.Now.AddHours(1)).ToString("s", CultureInfo.InvariantCulture)"
-                            asp-route-endTime="@segment.End.ToString("s", CultureInfo.InvariantCulture)">
-                                @(index + 1)
-                            </a>
+                            @Html.ActionLink(
+                                         linkText: $"{index + 1}",
+                                         actionName: "Reserve",
+                                         controllerName: "Workspace",
+                                         routeValues: new 
+                                         { 
+                                             id = Model.Workspace.WorkspaceId, 
+                                             startTime = MaxDateTime(segment.Start, DateTime.Now.AddHours(1)).ToString("s", CultureInfo.InvariantCulture), 
+                                             endTime = segment.End.ToString("s", CultureInfo.InvariantCulture) 
+                                         })
                         }
                         else
                         {
-                            <a asp-controller="Account" asp-action="Login">
-                                @(index + 1)
-                            </a>
+                            @Html.ActionLink(
+                                         linkText: $"{index + 1}", 
+                                         actionName: "Login", 
+                                         controllerName: "Account")
                         }
                     }
 
-                    <div class="tooltip">@tooltipText</div>
+                    <div class="tooltip">@Html.Raw(tooltipText)</div>
                 </li>
             }
         </ol>
         <div class="timeline-axis">
             @{
                 var tickCount = 4;
-                var tickHoursStep = totalHours / tickCount;
-                var it = timelineStart;
+                var tickHoursStep = Model.TotalHours / tickCount;
+                var it = Model.TimelineStart;
 
-                while (it <= timelineEnd)
+                while (it <= Model.TimelineEnd)
                 {
-                    var leftPercent = (it - timelineStart).TotalHours / totalHours * 100;
+                    var leftPercent = (it - Model.TimelineStart).TotalHours / Model.TotalHours * 100;
 
                     <div class="tick" style="left:@leftPercent.ToString(System.Globalization.CultureInfo.InvariantCulture)%">
                         <span>
@@ -179,19 +148,25 @@
             <th>end</th>
         </thead>
         <tbody>
-            @foreach (var (seg, index) in segments.Where(x => x.IsReserved).WithIndex())
+            @foreach (var (reservation, index) in Model.Reservations.WithIndex())
             {
                 <tr>
-                    @if (seg.BelongsToUser)
+                    @if (reservation.CustomerId == Model.UserId)
                     {
-                        <td><a asp-controller="Reservation" asp-action="Detail" asp-route-id="@seg.ReservationId">@(index + 1)</a></td>
+                        <td>
+                            @Html.ActionLink(
+                                     linkText: $"{index + 1}",
+                                     actionName: "Detail",
+                                     controllerName: "Reservation",
+                                     routeValues: new { id = reservation.ReservationId })
+                        </td>
                     }
                     else
                     {
                         <td>@(index + 1)</td>
                     }
-                    <td>@seg.Start</td>
-                    <td>@seg.End</td>
+                    <td>@reservation.StartTime</td>
+                    <td>@reservation.EndTime</td>
                 </tr>
             }
         </tbody>
@@ -270,7 +245,7 @@
         .tooltip {
             display: none;
             position: absolute;
-            top: -2rem;               /* tweak vertical offset */
+            top: -12rem;               /* tweak vertical offset */
             left: 50%;
             transform: translateX(-50%);
             white-space: nowrap;

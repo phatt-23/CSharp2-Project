@@ -7,8 +7,7 @@ using CoworkingApp.Types;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CoworkingApp.Controllers.APIEndpoints.Admin;
-
+namespace CoworkingApp.Controllers.ApiEndpointContollers.AdminApiControllers;
 
 public interface IAdminWorkspaceApi
 {
@@ -20,7 +19,6 @@ public interface IAdminWorkspaceApi
 }
 
 
-[ApiController]
 [AdminApiController]
 [Route("api/admin/workspace")]
 public class AdminWorkspaceApiController

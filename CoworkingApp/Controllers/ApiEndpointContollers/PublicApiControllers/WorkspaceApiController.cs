@@ -2,6 +2,7 @@ using AutoMapper;
 using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Models.Exceptions;
 using CoworkingApp.Services;
+using CoworkingApp.Types;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CoworkingApp.Controllers.ApiEndpointContollers.PublicApiControllers;
@@ -13,7 +14,7 @@ internal interface IWorkspaceApi
 }
 
 
-[ApiController]
+[PublicApiController]
 [Route("/api/workspace")]
 public class WorkspaceApiController
     (

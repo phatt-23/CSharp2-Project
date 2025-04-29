@@ -90,8 +90,8 @@ public class MapperProfile : Profile
         CreateMap<ReservationCreateRequestDto, Reservation>().ReverseMap();
 
         CreateMap<Reservation, AdminReservationDto>().ReverseMap();
-        
 
+        CreateMap<ReservationUpdateRequestDto, Reservation>().ReverseMap();
 
 
         CreateMap<User, UserDto>().ReverseMap();

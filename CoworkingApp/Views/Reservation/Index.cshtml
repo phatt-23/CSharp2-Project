@@ -1,3 +1,4 @@
+@using CoworkingApp.Models.DataModels
 @model IEnumerable<CoworkingApp.Models.DataModels.Reservation>
 
 @{
@@ -8,7 +9,7 @@
 <page id="reservation-index-page">
     <h2>My Reservation</h2>
 
-    <a asp-action="Create">New reservation</a>
+    @Html.ActionLink("New reservation", "Create")
 
     <!-- Display the error messages if there are any -->
     @if (ViewData.ModelState != null && ViewData.ModelState.Values.Any(v => v.Errors.Count > 0))
@@ -35,25 +36,44 @@
             <th>Actions</th>
         </thead>
         <tbody>
-        @foreach (var reservation in Model.OrderBy(x => x.StartTime))
-        {
-            <tr>
-                <td><a asp-controller="Workspace" asp-action="Detail" asp-route-id="@reservation.WorkspaceId">@reservation.Workspace.Name</a></td>
-                <td>@reservation.StartTime</td>
-                <td>@reservation.EndTime</td>
-                <td>@(reservation.TotalPrice)$</td>
-                <td>@reservation.CreatedAt</td>
-                <td>@(reservation.StartTime >= DateTime.Now ? "No" : "Yes")</td>
-                <td>
-                    <a asp-controller="Reservation" asp-action="Detail" asp-route-id="@reservation.ReservationId">Detail</a>
-                    <form method="post" asp-action="Cancel" asp-route-id="@reservation.ReservationId">
-                        <button disabled="@(reservation.StartTime >= DateTime.Now ? false : true)" type="submit">
-                            Cancel
-                        </button>
-                    </form>
-                </td>
-            </tr>
-        }
+            @foreach (var reservation in Model.OrderBy(x => x.StartTime))
+            {
+                <tr>
+                    <td><a asp-controller="Workspace" asp-action="Detail" asp-route-id="@reservation.WorkspaceId">@reservation.Workspace.Name</a></td>
+                    <td>@reservation.StartTime</td>
+                    <td>@reservation.EndTime</td>
+                    <td>@(reservation.TotalPrice)$</td>
+                    <td>@reservation.CreatedAt</td>
+                    <td>@(reservation.StartTime >= DateTime.Now ? "No" : "Yes")</td>
+                    <td>
+                        @Html.ActionLink(
+                                 linkText: "Detail",
+                                 actionName: "Detail",
+                                 controllerName: "Reservation",
+                                 routeValues: new { id = reservation.ReservationId })
+
+                        @Html.ActionLink(
+                                 linkText: "Edit",
+                                 actionName: "Edit",
+                                 controllerName: "Reservation",
+                                 routeValues: new { id = reservation.ReservationId },
+                                 htmlAttributes: new { style = reservation.HasStarted() ? "display:none;" : "" })
+
+                        @using (Html.BeginForm(
+                            actionName: "Cancel",
+                            controllerName: "Reservation",
+                            routeValues: new { id = reservation.ReservationId },
+                            method: FormMethod.Post,
+                            antiforgery: true,
+                            htmlAttributes: new { @styles = reservation.HasStarted() ? "display:none;" : "display:inline;" }))
+                            {
+                                <button disabled="@reservation.HasStarted()" type="submit">
+                                    Cancel
+                                </button>
+                            }
+                    </td>
+                </tr>
+            }
         </tbody>
     </table>
 </page>

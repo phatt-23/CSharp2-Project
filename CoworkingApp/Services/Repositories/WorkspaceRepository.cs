@@ -4,6 +4,7 @@ using AutoFilterer.Extensions;
 using AutoFilterer.Types;
 using CoworkingApp.Data;
 using CoworkingApp.Models.DataModels;
+using CoworkingApp.Models.DtoModels;
 using Microsoft.EntityFrameworkCore;
 
 namespace CoworkingApp.Services.Repositories;
@@ -55,12 +56,17 @@ public class WorkspaceRepository
             query = query.Where(w => w.WorkspacePricings.Any());
         }
 
-        if (filter.IncludeLatestPricing)
+        switch (filter.Sort)
         {
-            var result = query.Include(x => x.WorkspacePricings).ToList();
-            result.ForEach(w => w.WorkspacePricings = [.. w.WorkspacePricings.OrderByDescending(p => p.ValidFrom).Take(1)]);
-
-            return result;
+            case WorkspaceSort.PriceDescending:
+                query = query.OrderByDescending(w => w.WorkspacePricings.OrderByDescending(p => p.ValidFrom).FirstOrDefault()!.PricePerHour);
+                break;
+            case WorkspaceSort.PriceAscending:
+                query = query.OrderBy(w => w.WorkspacePricings.OrderByDescending(p => p.ValidFrom).FirstOrDefault()!.PricePerHour);
+                break;
+            case WorkspaceSort.None:
+            default:
+                break;
         }
 
         return query;
@@ -85,6 +91,12 @@ public class WorkspaceRepository
         await context.SaveChangesAsync();
         return updatedWorkspace.Entity;
     }
+}
+public enum WorkspaceSort
+{
+    None = 0,
+    PriceDescending,
+    PriceAscending,
 }
 
 public class WorkspaceFilter : FilterBase
@@ -113,4 +125,6 @@ public class WorkspaceFilter : FilterBase
     public bool IncludeStatus { get; set; } = false;
     public bool IncludeCoworkingCenter { get; set; } = false;
     public bool HasPricing { get; set; } = true;
+
+    public WorkspaceSort Sort { get; set; } = WorkspaceSort.None;
 }

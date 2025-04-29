@@ -23,15 +23,17 @@ public abstract class RepositoryBase<TEntity, TFilter>
 
 public class RangeFilter<T> where T : struct, IComparable<T>
 {
-    [FromQuery(Name = "min")]
+    [FromQuery(Name = "Min")]
     public T? Min { get; set; }
 
-    [FromQuery(Name = "max")]
+    [FromQuery(Name = "Max")]
     public T? Max { get; set; }
     
-    public IQueryable<TEntity> ApplyTo<TEntity>(
-        IQueryable<TEntity> query, 
-        Expression<Func<TEntity, T>> propertySelector)
+    public IQueryable<TEntity> ApplyTo<TEntity>
+        (
+            IQueryable<TEntity> query, 
+            Expression<Func<TEntity, T>> propertySelector
+        )
     {
         var selectorFunc = propertySelector.Compile();
         var compare = Comparer<T>.Default.Compare;
@@ -39,38 +41,46 @@ public class RangeFilter<T> where T : struct, IComparable<T>
         IEnumerable<TEntity> list = query.AsEnumerable();
 
         if (Min.HasValue)
+        {
             list = list.Where(x => compare(selectorFunc(x), Min.Value) >= 0);
+        }
 
         if (Max.HasValue)
+        {
             list = list.Where(x => compare(selectorFunc(x), Max.Value) <= 0);
+        }
 
         return list.AsQueryable();
     }
 }
-
-
 public class NullableRangeFilter<T> where T : struct, IComparable<T>
 {
-    [FromQuery(Name = "min")]
+    [FromQuery(Name = "Min")]
     public T? Min { get; set; }
 
-    [FromQuery(Name = "max")]
+    [FromQuery(Name = "Max")]
     public T? Max { get; set; }
 
-    public IQueryable<TEntity> ApplyTo<TEntity>(
-        IQueryable<TEntity> query, 
-        Expression<Func<TEntity, T?>> propertySelector)
+    public IQueryable<TEntity> ApplyTo<TEntity>
+        (
+            IQueryable<TEntity> query,
+            Expression<Func<TEntity, T?>> propertySelector
+        )
     {
         var selectorFunc = propertySelector.Compile();
         var compare = Comparer<T>.Default.Compare;
-        
+
         IEnumerable<TEntity> list = query.AsEnumerable();
 
         if (Min.HasValue)
+        {
             list = list.Where(x => selectorFunc(x) == null || compare(selectorFunc(x)!.Value, Min.Value) >= 0);
+        }
 
         if (Max.HasValue)
+        {
             list = list.Where(x => selectorFunc(x) == null || compare(selectorFunc(x)!.Value, Max.Value) <= 0);
+        }
 
         return list.AsQueryable();
     }
