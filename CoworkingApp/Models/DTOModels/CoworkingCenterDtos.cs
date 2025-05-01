@@ -7,7 +7,7 @@ namespace CoworkingApp.Models.DtoModels;
 // Data DTOs (response)
 /////////////////////////////////////////////////////////////////////////////////
 
-[PublicDto]
+[PublicDataDto]
 public class CoworkingCenterDto
 {
     public int CoworkingCenterId { get; set; }
@@ -19,7 +19,7 @@ public class CoworkingCenterDto
 }
 
 
-[AdminDto]
+[AdminDataDto]
 public class AdminCoworkingCenterDto
 {
     public int CoworkingCenterId { get; set; } // Required for CRUD
@@ -36,16 +36,25 @@ public class AdminCoworkingCenterDto
 // Request DTOs
 /////////////////////////////////////////////////////////////////////////////////
 
-[PublicDto]
+[PublicRequestDto]
 public sealed class CoworkingCenterQueryRequestDto : PaginationRequestDto 
 {
     public string? NameContains { get; set; }
-    public RangeFilter<decimal> Latitude { get; set; } = new();
-    public RangeFilter<decimal> Longitude { get; set; } = new();
+    public NullableRangeFilter<decimal> Latitude { get; set; } = new();
+    public NullableRangeFilter<decimal> Longitude { get; set; } = new();
 }
 
-[AdminDto]
+[AdminRequestDto]
 public class CoworkingCenterCreateRequestDto
+{
+    [Required] public string Name { get; set; } = null!;
+    public string Description { get; set; } = string.Empty;
+    [Required] public int Latitude { get; set; }
+    [Required] public int Longitude { get; set; }
+}
+
+[AdminRequestDto]
+public class CoworkingCenterCreateWithAddressRequestDto
 {
     public string Name { get; set; } = null!;
     public string Description { get; set; } = null!;
@@ -56,7 +65,7 @@ public class CoworkingCenterCreateRequestDto
     public string Country { get; set; } = null!;
 }
 
-[AdminDto]
+[AdminRequestDto]
 public class CoworkingCenterUpdateRequestDto
 {
     [Required] public required string Name { get; set; }
@@ -72,13 +81,13 @@ public class CoworkingCenterUpdateRequestDto
 // Response DTOs
 /////////////////////////////////////////////////////////////////////////////////
 
-[PublicDto]
+[PublicResponseDto]
 public class CoworkingCenterQueryResponseDto : PaginationResponseDto
 {
     public required IEnumerable<CoworkingCenterDto> Centers { get; set; }
 }
 
-[AdminDto]
+[AdminResponseDto]
 public class AdminCoworkingCenterQueryResponseDto : PaginationResponseDto
 {
     public required IEnumerable<AdminCoworkingCenterDto> Centers { get; set; }

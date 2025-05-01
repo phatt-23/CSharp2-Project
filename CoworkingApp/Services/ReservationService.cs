@@ -12,7 +12,7 @@ public interface IReservationService
     Task<IEnumerable<Reservation>> GetReservations(ReservationQueryRequestDto request);
     Task<Reservation> GetReservationById(int reservationId);
     Task<Reservation> CreateReservation(int customerId, ReservationCreateRequestDto request);
-    Task<Reservation> UpdateReservation(int reservationId, ReservationUpdateRequestDto request);
+    Task<Reservation> UpdateReservation(ReservationUpdateRequestDto request);
     Task<Reservation> CancelReservation(int reservationId);
 
     // Admin
@@ -47,12 +47,19 @@ public class ReservationService
 
     public async Task<Reservation> GetReservationById(int reservationId)
     {
-        var reservations = await repository.GetReservations(new ReservationsFilter { Id = reservationId });
+        var reservations = await repository.GetReservations(new ReservationsFilter 
+        { 
+            Id = reservationId,
+            IncludeWorkspace = true,
+            IncludeWorkspacePricing = true,
+        });
 
-        if (!reservations.Any()) 
+        if (!reservations.Any())
+        { 
             throw new NotFoundException($"Reservation with id '{reservationId}' not found");
+        }
 
-        return reservations.First();
+        return reservations.Single();
     }
 
     public async Task<Reservation> CreateReservation(int customerId, ReservationCreateRequestDto request)
@@ -62,7 +69,7 @@ public class ReservationService
         return await repository.AddReservation(reservation);
     }
 
-    public async Task<Reservation> UpdateReservation(int reservationId, ReservationUpdateRequestDto request)
+    public async Task<Reservation> UpdateReservation(ReservationUpdateRequestDto request)
     {
         return await repository.UpdateReservation(mapper.Map<Reservation>(request));
     }
@@ -75,15 +82,7 @@ public class ReservationService
 
     public async Task<Reservation> CancelReservation(int reservationId)
     {
-        var reservation = (await repository.GetReservations(new ReservationsFilter 
-        { 
-            Id = reservationId 
-        })).FirstOrDefault();
-
-        if (reservation == null)
-        { 
-            throw new NotFoundException($"Reservation with id {reservationId} not found");
-        }
+        var reservation = await GetReservationById(reservationId);
 
         if (reservation.StartTime <= DateTime.Now)
         {
@@ -94,4 +93,3 @@ public class ReservationService
     }
 }
 
-public class ReservationAlreadyTakingPlaceException(string m) : Exception(m);

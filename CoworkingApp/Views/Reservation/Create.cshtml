@@ -20,9 +20,10 @@
     </div>
 }
 
-<a asp-action="Index">Go to reservations</a>
+@Html.ActionLink(linkText: "Go to dashboard", actionName: "Dashboard", controllerName: "Home")
 
-<form method="post" asp-action="Create">
+@using (Html.BeginForm(actionName: "Create", controllerName: "Reservation"))
+{
     <div class="form-row">
         <label asp-for="@Model.Request.WorkspaceId">Workspace</label>
         <select id="workspaceSelect" asp-for="@Model.Request.WorkspaceId">
@@ -64,7 +65,7 @@
     <menu>
         <button type="submit">Create</button>
     </menu>
-</form>
+}
 
 
 @section Scripts {
@@ -78,7 +79,7 @@
             
                 if (id) {
                     // build the URL to your detail page
-                    link.href = `/workspace/${id}`
+                    link.href = `/Workspace/Detail/${id}`
                     link.style.display = 'inline';
                 } else {
                     link.style.display = 'none';

@@ -10,4 +10,7 @@ public static class ClaimsPrincipalExtensions
 {
     public static bool IsAuthenticated(this ClaimsPrincipal claimsPrincipal) 
         => claimsPrincipal.Identity?.IsAuthenticated ?? false;
+
+    public static int? GetUserId(this ClaimsPrincipal claimsPrincipal)
+        => claimsPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value.TryParseToInt();
 }

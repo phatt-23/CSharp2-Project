@@ -12,6 +12,7 @@ public interface ICoworkingCenterService
 {
     Task<IEnumerable<CoworkingCenter>> GetCenters(CoworkingCenterQueryRequestDto request);
     Task<CoworkingCenter> GetCenterById(int coworkingCenterId);
+    Task<CoworkingCenter> CreateCenter(CoworkingCenterCreateWithAddressRequestDto request);
     Task<CoworkingCenter> CreateCenter(CoworkingCenterCreateRequestDto request);
     Task<CoworkingCenter> UpdateCenter(int coworkingCenterId, CoworkingCenterUpdateRequestDto request);
 }
@@ -22,7 +23,8 @@ public class CoworkingCenterService
         ICoworkingCenterRepository coworkingCenterRepository,
         IAddressRepository addressRepository,
         CoworkingDbContext context,
-        IGeocodingService geocodingService
+        IGeocodingService geocodingService,
+        IAddressService addressService
     ) 
     : ICoworkingCenterService
 {
@@ -30,7 +32,7 @@ public class CoworkingCenterService
     {
         var centers = await coworkingCenterRepository.GetCenters(new CoworkingCenterFilter
         {
-            LikeName = request.NameContains,
+            NameContains = request.NameContains,
             Latitude = request.Latitude,
             Longitude = request.Longitude,
             IncludeAddress = true,
@@ -52,13 +54,26 @@ public class CoworkingCenterService
 
     public async Task<CoworkingCenter> CreateCenter(CoworkingCenterCreateRequestDto request)
     {
+        var address = await addressService.CreateAddressFromCoordinates(request.Latitude, request.Longitude);
+
+        var center = mapper.Map<CoworkingCenter>(request);
+        center.AddressId = address.AddressId;
+        center.LastUpdated = DateTime.UtcNow;
+ 
+        var addedCenter = (await context.CoworkingCenters.AddAsync(center)).Entity;
+        await context.SaveChangesAsync();
+        return await coworkingCenterRepository.GetCenterById(addedCenter.CoworkingCenterId);
+    }
+
+    public async Task<CoworkingCenter> CreateCenter(CoworkingCenterCreateWithAddressRequestDto request)
+    {
         // get the geocode from the request, if it is null, throw an exception
-        var geoCode = await geocodingService.GeocodeAsync(
-            request.StreetAddress, 
-            request.District, 
-            request.City, 
-            request.PostalCode, 
-            request.Country) 
+        var geoCode = await geocodingService.Geocode(
+            request.StreetAddress,
+            request.District,
+            request.City,
+            request.PostalCode,
+            request.Country)
             ?? throw new ArgumentException("The address could not be validated.");
 
         // find country from request

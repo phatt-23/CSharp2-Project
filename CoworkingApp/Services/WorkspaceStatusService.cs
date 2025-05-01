@@ -8,13 +8,13 @@ public interface IWorkspaceStatusService
 {
     Task<IEnumerable<WorkspaceStatus>> GetStatuses(WorkspaceStatusQueryRequestDto request);
     Task<WorkspaceStatus> GetStatusById(int workspaceStatusId);
+    Task<WorkspaceStatus> GetStatusByType(WorkspaceStatusType type);
 }
-
 
 public class WorkspaceStatusService
     (
         IWorkspaceStatusRepository statusRepository
-    ) 
+    )
     : IWorkspaceStatusService
 {
     public async Task<IEnumerable<WorkspaceStatus>> GetStatuses(WorkspaceStatusQueryRequestDto request)
@@ -22,7 +22,7 @@ public class WorkspaceStatusService
         var statuses = await statusRepository.GetStatuses(new WorkspaceStatusFilter
         { 
             Id = request.Id,
-            LikeName = request.Name
+            NameContains = request.Name
         });
 
         return statuses;
@@ -39,4 +39,18 @@ public class WorkspaceStatusService
         return statuses.Single();
     }
 
+    public async Task<WorkspaceStatus> GetStatusByType(WorkspaceStatusType type)
+    {
+        var status = (await statusRepository.GetStatuses(new WorkspaceStatusFilter
+        {
+            NameContains = type.ToString()
+        })).SingleOrDefault();
+
+        if (status == null)
+        {
+            throw new Exception($"Status with type {type} not found");
+        }
+
+        return status;
+    }
 }

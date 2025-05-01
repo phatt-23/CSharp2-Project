@@ -5,6 +5,7 @@ namespace CoworkingApp.Models.ViewModels;
 
 public class CoworkingCenterIndexViewModel
 {
-    public IEnumerable<CoworkingCenter> CoworkingCenters { get; set; } = [];
-    public PaginationRequestDto Pagination { get; set; } = null!;
+    public required IEnumerable<CoworkingCenter> CoworkingCenters { get; set; } = [];
+    public required PaginationRequestDto Pagination { get; set; } = null!;
+    public required int TotalCount { get; set; }
 }

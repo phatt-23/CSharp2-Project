@@ -43,6 +43,7 @@ public partial class Workspace
 
     [ForeignKey("UpdatedBy")]
     [InverseProperty("Workspaces")]
+    [JsonIgnore]
     public virtual User? UpdatedByNavigation { get; set; }
 
     [InverseProperty("Workspace")]

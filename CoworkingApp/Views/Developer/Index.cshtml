@@ -4,23 +4,8 @@
 }
 
 <main id="api-docs-page">
-<action>
-    <h2>API</h2>
-    <p>
-        We don't have an API documentation yet.
-
-        <br />
-
-        You can try out our api <a href="#api-docs-endpoint-showcase">endpoint</a> 
-        that will tell you all of our available endoints 
-        their http verb, body parameters and authorization level.
-    </p>
-</action>
-<hr/>
 <article>
-    <h3 id="#api-docs-endpoint-showcase">
-        API Documentation Endpoints
-    </h3>
+    <h1>API Documentation Endpoints</h1>
 
     <p>
         The public document is available through this endpoint: <br/>
@@ -40,18 +25,15 @@
         <thead>
             <th>route</th>
             <th>administator authorization required</th>
-            <th>response format</th>
         </thead>
         <tbody>
             <tr>
                 <td>/api/docs</td>
                 <td>no</td>
-                <td>text/json</td>
             </tr>
             <tr>
                 <td>/api/docs/admin</td>
                 <td>yes</td>
-                <td>application/json</td>
             </tr>
         </tbody>
     </table>

@@ -4,7 +4,7 @@ using CoworkingApp.Services;
 using CoworkingApp.Types;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CoworkingApp.Controllers.ApiEndpointContollers.PublicApiControllers;
+namespace CoworkingApp.Controllers.ApiEndpointContollers.Public;
 
 public interface IPricingApi
 {
@@ -20,11 +20,13 @@ public class WorkspacePricingApiController
     ) 
     : Controller, IPricingApi
 {
-    [HttpGet("{id:int}")]
+    [HttpGet]
     public async Task<ActionResult<IEnumerable<WorkspacePricingDto>>> GetPricingsOfWorkspaceByIdAsync(int id)
     {
-        var pricings = await pricingService.GetPricings(
-            new WorkspacePricingQueryRequestDto { WorkspaceId = id });
+        var pricings = await pricingService.GetPricings(new WorkspacePricingQueryRequestDto 
+        { 
+            WorkspaceId = id 
+        });
         
         var pricingDtos = mapper.Map<IEnumerable<WorkspacePricingDto>>(pricings);
         

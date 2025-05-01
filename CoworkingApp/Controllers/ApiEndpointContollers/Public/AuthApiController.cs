@@ -1,24 +1,28 @@
 using System.Security.Claims;
+using AutoMapper;
 using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Models.Exceptions;
+using CoworkingApp.Models.Misc;
 using CoworkingApp.Services;
 using CoworkingApp.Types;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CoworkingApp.Controllers.ApiEndpointContollers.PublicApiControllers;
+namespace CoworkingApp.Controllers.ApiEndpointContollers.Public;
 
 [PublicApiController]
 [Route("/api/auth")]
 public class AuthApiController
     (
-        IAuthService authService
+        IAuthService authService,
+        IUserService userService,
+        IMapper mapper
     ) 
     : Controller
 {
     [HttpPost("register")]
-    public async Task<ActionResult<UserDto>> Register([FromBody]UserRegisterRequestDto request)
+    public async Task<ActionResult<UserDto>> Register([FromBody] UserRegisterRequestDto request)
     {
         try
         {
@@ -32,14 +36,14 @@ public class AuthApiController
     }
 
     [HttpPost("login")]
-    public async Task<ActionResult<TokenResponseDto>> LoginAsync([FromBody]UserLoginRequestDto request)
+    public async Task<ActionResult<TokenResponseDto>> Login([FromBody]UserLoginRequestDto request)
     {
         try
         {
             var tokenResponseDto = await authService.LoginUser(request);
 
             await authService.StoreCookies(Response, tokenResponseDto); // For web users, storing in cookies.
-            
+
             return Ok(tokenResponseDto); // For other users, handle manually.
             // return Ok(new { message = "Login successful"});
         }
@@ -51,16 +55,25 @@ public class AuthApiController
         {
             return BadRequest(ex.Message);
         }
+        catch (WrongPasswordException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
     
     [Authorize]
     [HttpGet("me")]
-    public IActionResult GetUser()
+    public async Task<ActionResult<UserDto>> Me()
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var email = User.FindFirst(ClaimTypes.Email)?.Value;
+        var userId = User.GetUserId(); 
+        if (userId == null)
+        {
+            return Unauthorized(new { message = "User not found" });
+        }
 
-        return Ok(new { userId, email });
+        var user = await userService.GetUserById(userId.Value);
+        var userDto = mapper.Map<UserDto>(user);
+        return Ok(userDto);
     } 
 
     [Authorize]
@@ -108,16 +121,16 @@ public class AuthApiController
     /////// TEST ENDPOINTS ////////////////////////////////////
     ///////////////////////////////////////////////////////////
 
-    [HttpGet("protected")]
     [Authorize]
+    [HttpGet("protected")]
     public IActionResult GetProtectedEndpoint()
     {
         var email = User.Claims.First(c => c.Type == ClaimTypes.Email).Value;
         return Ok($"Hi, {email}, you are authenticated!");
     }
 
-    [HttpGet("admin-only")]
     [Authorize(Roles = "Admin")]
+    [HttpGet("admin-only")]
     public IActionResult GetAdminOnlyEndpoint()
     {
         var email = User.Claims.First(c => c.Type == ClaimTypes.Email).Value;

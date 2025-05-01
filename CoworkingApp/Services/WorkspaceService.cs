@@ -12,7 +12,7 @@ public interface IWorkspaceService
     Task<Workspace> GetWorkspaceById(int id);
     Task<IEnumerable<WorkspaceHistory>> GetWorkspaceHistory(int id);
     Task<Workspace> CreateWorkspace(WorkspaceCreateRequestDto request);
-    Task<Workspace> UpdateWorkspace(int workspaceId, WorkspaceUpdateRequestDto request);
+    Task<Workspace> UpdateWorkspace(WorkspaceUpdateRequestDto request);
     Task<bool> UpdateWorkspaceStatus(int workspaceId, WorkspaceStatusType statusType);
     Task<Workspace> RemoveWorkspaceById(int workspaceId);
 }
@@ -21,33 +21,42 @@ public class WorkspaceService
     (
         IWorkspaceRepository workspaceRepository,
         IWorkspaceHistoryRepository historyRepository,
-        IWorkspaceStatusRepository statusRepository
+        IWorkspaceStatusRepository statusRepository,
+        IWorkspaceStatusService statusService,
+        IWorkspacePricingRepository pricingRepository,
+        ICoworkingCenterRepository coworkingCenterRepository
     )
     : IWorkspaceService
 {
     public async Task<IEnumerable<Workspace>> GetWorkspacesForAdmin(AdminWorkspaceQueryRequestDto request)
     {
-        var workspaces = await workspaceRepository.GetWorkspaces(new WorkspaceFilter
-        {
-            LikeName = request.LikeName,
-            IncludeLatestPricing = true,
-            IncludeCoworkingCenter = true,
-            IncludeStatus = true,
-        });
-
-        return workspaces;
+        return await GetWorkspaces(request);
     }
 
     public async Task<IEnumerable<Workspace>> GetWorkspaces(WorkspaceQueryRequestDto request)
     {
         var workspaces = await workspaceRepository.GetWorkspaces(new WorkspaceFilter
         {
-            LikeName = request.LikeName,
+            LikeName = request.NameContains,
             IsRemoved = false,
-            IncludeLatestPricing = true,
+            IncludePricings = true,
             IncludeCoworkingCenter = true,
+            IncludeHistories = true,
             IncludeStatus = true,
+            PricePerHour = request.PricePerHour,
+            CoworkingCenterId = request.CoworkingCenterId
         });
+        
+        if (request.Status != null)
+        {
+            workspaces = workspaces.Where(w =>
+            {
+                var currentHistory = w.GetCurrentHistory();
+                return currentHistory == null
+                    ? throw new Exception("Workspace doesn't have status history")
+                    : currentHistory.Status.Type == request.Status.Value;
+            });
+        }
 
         return workspaces;
     }
@@ -64,11 +73,12 @@ public class WorkspaceService
             IncludeReservations = true,
         });
 
-        var workspace = workspaces.SingleOrDefault() 
-                ?? 
-                throw new NotFoundException("Workspace with id '" + id + "' not found or multiple exists.");
+        if (!workspaces.Any())
+        {
+            throw new NotFoundException($"Workspace with id '{id}' not found or multiple exists.");
+        }
 
-        return workspace;
+        return workspaces.Single();
     }
 
     public async Task<IEnumerable<WorkspaceHistory>> GetWorkspaceHistory(int workspaceId)
@@ -88,6 +98,9 @@ public class WorkspaceService
 
     public async Task<Workspace> CreateWorkspace(WorkspaceCreateRequestDto request)
     {
+        // check for existence will throw if not
+        await coworkingCenterRepository.GetCenterById(request.CoworkingCenterId);
+
         var workspace = await workspaceRepository.AddWorkspace(new Workspace
         {
             Name = request.Name,
@@ -95,16 +108,36 @@ public class WorkspaceService
             CoworkingCenterId = request.CoworkingCenterId,
         });
 
+        var status = await statusService.GetStatusByType(request.Status);
+
+        await historyRepository.AddHistory(new WorkspaceHistory
+        {
+            WorkspaceId = workspace.WorkspaceId,
+            StatusId = status.WorkspaceStatusId,
+        });
+
+        await pricingRepository.AddPricing(new WorkspacePricing
+        {
+            WorkspaceId = workspace.WorkspaceId,
+            PricePerHour = request.PricePerHour,
+            ValidFrom = DateTime.UtcNow,
+            ValidUntil = null,
+        });
+
         return workspace;
     }
 
-    public async Task<Workspace> UpdateWorkspace(int workspaceId, WorkspaceUpdateRequestDto request)
+    public async Task<Workspace> UpdateWorkspace(WorkspaceUpdateRequestDto request)
     {
-        var workspace = await GetWorkspaceById(workspaceId);
+        var workspace = await GetWorkspaceById(request.WorkspaceId);
 
-        if (request.Name != null) workspace.Name = request.Name;
-        if (request.Description != null) workspace.Description = request.Description;
-        if (request.CoworkingCenterId.HasValue) workspace.CoworkingCenterId = request.CoworkingCenterId.Value;
+        workspace.CoworkingCenterId = request.CoworkingCenterId;
+
+        if (!string.IsNullOrEmpty(request.Name)) 
+            workspace.Name = request.Name;
+
+        if (!string.IsNullOrEmpty(request.Description)) 
+            workspace.Description = request.Description;
         
         return await workspaceRepository.UpdateWorkspace(workspace);
     }
@@ -115,7 +148,7 @@ public class WorkspaceService
         
         var workspace = workspaces.Single();
 
-        var statuses = await statusRepository.GetStatuses(new WorkspaceStatusFilter { LikeName = statusType.ToString() });
+        var statuses = await statusRepository.GetStatuses(new WorkspaceStatusFilter { NameContains = statusType.ToString() });
         var status = statuses.Single();
        
         await workspaceRepository.UpdateWorkspace(workspace);

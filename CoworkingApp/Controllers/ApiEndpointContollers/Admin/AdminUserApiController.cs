@@ -3,6 +3,7 @@ using CoworkingApp.Models.DataModels;
 using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Services;
 using CoworkingApp.Types;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CoworkingApp.Controllers.ApiEndpointContollers.AdminApiControllers;
@@ -10,12 +11,14 @@ namespace CoworkingApp.Controllers.ApiEndpointContollers.AdminApiControllers;
 public interface IAdminUserApi
 { 
     Task<ActionResult<IEnumerable<UserDto>>> GetUsers(UserQueryRequestDto request);
-    Task<ActionResult<UserDto>> ChangeUserRole(int userId, [FromQuery] UserRoleType role);
+    Task<ActionResult<UserDto>> GetUser(int id);
     Task<ActionResult<UserDto>> RemoveUser(int userId);
+    Task<ActionResult<UserDto>> ChangeUserRole(int userId, [FromQuery] UserRoleType role);
 }
 
 [AdminApiController]
 [Route("api/admin/user")]
+[Authorize(Roles = "Admin")]
 public class AdminUserApiController
     (
         IUserService userService, 
@@ -38,18 +41,18 @@ public class AdminUserApiController
         }
     }
 
-    [HttpPut("{id:int}/role")]
-    public async Task<ActionResult<UserDto>> ChangeUserRole(int id, [FromQuery] UserRoleType role)
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<UserDto>> GetUser(int id)
     {
         try
         {
-            var users = await userService.ChangeUserRole(id, role);
-            var userDto = mapper.Map<UserDto>(users);
-            return Ok(userDto);
+            var user = await userService.GetUserById(id);
+            var userDto = mapper.Map<UserDto>(user);
+            return userDto;
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            return BadRequest(e.Message);
+            return NotFound(ex.Message);
         }
     }
 
@@ -60,6 +63,21 @@ public class AdminUserApiController
         {
             var user = await userService.RemoveUser(id);
             var userDto = mapper.Map<UserDto>(user);
+            return Ok(userDto);
+        }
+        catch (Exception e)
+        {
+            return BadRequest(e.Message);
+        }
+    }
+
+    [HttpPut("{id:int}/role")]
+    public async Task<ActionResult<UserDto>> ChangeUserRole(int id, [FromQuery] UserRoleType role)
+    {
+        try
+        {
+            var users = await userService.ChangeUserRole(id, role);
+            var userDto = mapper.Map<UserDto>(users);
             return Ok(userDto);
         }
         catch (Exception e)

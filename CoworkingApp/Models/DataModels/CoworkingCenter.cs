@@ -1,5 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
 
 namespace CoworkingApp.Models.DataModels;
 
@@ -26,14 +30,20 @@ public partial class CoworkingCenter
     [Column("updated_by")]
     public int? UpdatedBy { get; set; }
 
+    [Column("is_removed")]
+    public bool IsRemoved { get; set; }
+
     [ForeignKey("AddressId")]
     [InverseProperty("CoworkingCenters")]
+    [JsonIgnore]
     public virtual Address Address { get; set; } = null!;
 
     [ForeignKey("UpdatedBy")]
     [InverseProperty("CoworkingCenters")]
+    [JsonIgnore]
     public virtual User? UpdatedByNavigation { get; set; }
 
     [InverseProperty("CoworkingCenter")]
+    [JsonIgnore]
     public virtual ICollection<Workspace> Workspaces { get; set; } = new List<Workspace>();
 }

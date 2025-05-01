@@ -5,7 +5,7 @@ using CoworkingApp.Services;
 using CoworkingApp.Types;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CoworkingApp.Controllers.ApiEndpointContollers.PublicApiControllers;
+namespace CoworkingApp.Controllers.ApiEndpointContollers.Public;
 
 public interface ICoworkingCentersApi
 {
@@ -30,9 +30,7 @@ public class CoworkingCentersApiController
     {
         var centers = await coworkingCenterService.GetCenters(request);
 
-        var totalCount = centers.Count();
-        
-        var paginatedCenters = Pagination.Paginate(centers, request.PageNumber, request.PageSize);
+        var paginatedCenters = Pagination.Paginate(centers, out int totalCount, request.PageNumber, request.PageSize);
         var centerDtos = mapper.Map<IEnumerable<CoworkingCenterDto>>(paginatedCenters);
         
         var response = new CoworkingCenterQueryResponseDto

@@ -8,25 +8,25 @@
 
 <h2>Login</h2>
 
-<form method="post" asp-action="Login">
+@using (Html.BeginForm(actionName: "Login", controllerName: "Account"))
+{
     <div class="field-row">
-        <label asp-for="Email"></label>
-        <input asp-for="Email" type="email" required />
-        <span class="field-error" asp-validation-for="Email"></span>
+        @Html.LabelFor(m => m.Email)
+        @Html.TextBoxFor(m => m.Email, "", htmlAttributes: new { type = "email", required = true })
+        @Html.ValidationMessageFor(m => m.Email, "", htmlAttributes: new { @class = "field-error" })
     </div>
 
     <div class="field-row">
-        <label asp-for="Password"></label>
-        <input asp-for="Password" type="password" required />
-        <span class="field-error" asp-validation-for="Password"></span>
+        @Html.LabelFor(m => m.Password)
+        @Html.TextBoxFor(m => m.Password, "", htmlAttributes: new { type = "password", required = true })
+        @Html.ValidationMessageFor(m => m.Password, "", htmlAttributes: new { @class = "field-error" })
     </div>
 
-    
     <div class="form-controls">
-        <a asp-action="Register">I don't have an account yet</a>
+        @Html.ActionLink(linkText: "I don't have an account yet", actionName: "Register", controllerName: "Account")
         <button type="submit">Sign In</button>
     </div>
-</form>
+}
 
 @section Styles { 
     <style>

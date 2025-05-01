@@ -4,9 +4,50 @@ namespace CoworkingApp.Services;
 
 public record GeocodeResult(decimal Latitude, decimal Longitude);
 
+public record ReverseGeocodeResult(
+    string? Street,      // road + house number
+    string? District,    // suburb, county
+    string? City,        // city/town
+    string? PostalCode,  // postcode
+    string? Country      // country
+);
+
+file class NominatimAddressDto
+{
+    [JsonProperty("house_number")]
+    public string? HouseNumber { get; set; }
+
+    [JsonProperty("road")]
+    public string? Road { get; set; }
+
+    [JsonProperty("suburb")]
+    public string? Suburb { get; set; }
+
+    [JsonProperty("county")]
+    public string? County { get; set; }
+
+    [JsonProperty("city")]
+    public string? City { get; set; }
+
+    [JsonProperty("town")]
+    public string? Town { get; set; }
+
+    [JsonProperty("postcode")]
+    public string? Postcode { get; set; }
+
+    [JsonProperty("country")]
+    public string? Country { get; set; }
+}
+
+file class NominatimReverseDto
+{
+    [JsonProperty("address")]
+    public NominatimAddressDto? Address { get; set; }
+}
+
 public interface IGeocodingService
 {
-    Task<GeocodeResult?> GeocodeAsync
+    Task<GeocodeResult?> Geocode
         (
             string street,
             string district,
@@ -14,6 +55,8 @@ public interface IGeocodingService
             string postalCode,
             string country
         );
+
+    Task<ReverseGeocodeResult?> ReverseGeocode(decimal latitude, decimal longitude);
 }
 
 public class NominatimGeocodingService : IGeocodingService
@@ -28,7 +71,37 @@ public class NominatimGeocodingService : IGeocodingService
         _http.DefaultRequestHeaders.UserAgent.ParseAdd("MyApp/1.0 (admin@myapp.com)");
     }
 
-    public async Task<GeocodeResult?> GeocodeAsync
+    public async Task<ReverseGeocodeResult?> ReverseGeocode(decimal latitude, decimal longitude)
+    {
+        var url = $"https://nominatim.openstreetmap.org/reverse?format=json&lat={latitude}&lon={longitude}&addressdetails=1";
+
+        using var response = await _http.GetAsync(url);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        var reverseDto = await response.Content.ReadFromJsonAsync<NominatimReverseDto>();
+
+        if (reverseDto?.Address == null)
+        {
+            return null;
+        }
+
+        return new ReverseGeocodeResult(
+            Street:     string.Join(" ", 
+                            from s in (new[] { reverseDto.Address.Road, reverseDto.Address.HouseNumber })  
+                            where !string.IsNullOrWhiteSpace(s) select s),
+            District:   reverseDto.Address.Suburb ?? reverseDto.Address.County,
+            City:       reverseDto.Address.City ?? reverseDto.Address.Town,
+            PostalCode: reverseDto.Address.Postcode,
+            Country:    reverseDto.Address.Country
+        );
+    }
+
+
+    public async Task<GeocodeResult?> Geocode
         (
             string street,
             string district,

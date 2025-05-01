@@ -56,10 +56,10 @@ public class RangeFilter<T> where T : struct, IComparable<T>
 public class NullableRangeFilter<T> where T : struct, IComparable<T>
 {
     [FromQuery(Name = "Min")]
-    public T? Min { get; set; }
+    public T? Min { get; set; } = null;
 
     [FromQuery(Name = "Max")]
-    public T? Max { get; set; }
+    public T? Max { get; set; } = null;
 
     public IQueryable<TEntity> ApplyTo<TEntity>
         (

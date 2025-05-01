@@ -15,7 +15,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Scalar.AspNetCore;
-using Swashbuckle.AspNetCore.SwaggerGen;
 
 
 namespace CoworkingApp;
@@ -28,6 +27,31 @@ public enum ApiParameterBoundLocation
     Body,
 }
 
+public class ApiParameterSchema
+{
+
+}
+
+public class ApiComponentReference
+{
+    public required ApiObjectComponent Object { get; set; }
+}
+
+public class ApiObjectComponentProperty
+{
+    public required string Name { get; set; }
+    public required ApiComponentReference Reference { get; set; }
+    public Type? Type { get; set; }
+    public string? Format { get; set; }
+    public bool Nullable { get; set; } = false;
+}
+
+public class ApiObjectComponent 
+{
+    public required List<string> RequiredParameters { get; set; }
+    public required List<ApiObjectComponentProperty> Properties { get; set; }
+}
+
 public class ApiMethodParameter 
 { 
     public required string Name { get; set; }
@@ -35,21 +59,46 @@ public class ApiMethodParameter
     public required ApiParameterSchema Schema { get; set; }
 }
 
+public class ApiResponse
+{
+
+}
+
 public class ApiPathMethodDescription
 {
     public required HttpMethod HttpMethod { get; set; }
     public required List<ApiMethodTag> Tags { get; set; }
     public required List<ApiMethodParameter> Parameters { get; set; }
+    public required ApiResponse Response { get; set; }
 }
 
 public class ApiPathDescription 
 {
     public required List<ApiPathMethodDescription> Methods { get; set; }
 }
-
-
 internal static class Program
 {
+    /// Extract the return type of the action method
+    /// Takes of the Task<> and ActionResult<>
+    /// Task<ActionResult<T>> => T
+    private static Type UnwrapReturnType(Type type)
+    {
+
+        Type returnType = type;
+
+        if (returnType.IsGenericType && typeof(Task).IsAssignableFrom(returnType))
+        {
+            returnType = returnType.GetGenericArguments().FirstOrDefault() ?? returnType;
+        }
+
+        if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(ActionResult<>))
+        {
+            returnType = returnType.GetGenericArguments().FirstOrDefault() ?? returnType;
+        }
+
+        return returnType;
+    }
+
     private static bool IsComplexType(Type type)
     {
         if (type.IsPrimitive
@@ -77,7 +126,7 @@ internal static class Program
             .GetTypes()
             .Where(t => t.IsClass && t.GetCustomAttribute<ApiControllerAttribute>() != null);
 
-        foreach (var controller in apiControllers.Where(x => x.Name.Contains("Auth")))
+        foreach (var controller in apiControllers)
         {
             Console.WriteLine(controller.Name);
 
@@ -94,13 +143,14 @@ internal static class Program
                         parameter.Name + ": " + 
                         parameter.ParameterType.Name);
 
-                    if (IsComplexType( parameter.ParameterType ))
+                    if (IsComplexType(parameter.ParameterType))
                     {
 
                     }
                 }
 
-                Console.WriteLine("\t\t" + "=>" + action.ReturnType.Name);
+                Console.WriteLine("\t\t=>" + action.ReturnType.Name);
+                Console.WriteLine("\t\t=>" + UnwrapReturnType(action.ReturnType).Name);
             }
         }
 
@@ -108,8 +158,8 @@ internal static class Program
 
     private static void Main(string[] args)
     {
-        GetJsonSpecification();
-        return;
+        //GetJsonSpecification();
+        //return;
 
         /////////////////////////////////////////////////////////////////////////////
         // Services /////////////////////////////////////////////////////////////////
@@ -205,6 +255,7 @@ internal static class Program
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<IWorkspacePricingService, WorkspacePricingService>();
         builder.Services.AddScoped<IUserService, UserService>();
+        builder.Services.AddScoped<IAddressService, AddressService>();
 
         var app = builder.Build();
 

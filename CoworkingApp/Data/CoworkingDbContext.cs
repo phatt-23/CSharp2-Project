@@ -38,6 +38,10 @@ public partial class CoworkingDbContext : DbContext
 
     public virtual DbSet<WorkspaceStatus> WorkspaceStatuses { get; set; }
 
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseNpgsql("Host=localhost;Database=coworking_db;Username=postgres;Password=postgres;");
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Address>(entity =>
@@ -73,6 +77,7 @@ public partial class CoworkingDbContext : DbContext
         {
             entity.HasKey(e => e.CoworkingCenterId).HasName("coworking_center_pkey");
 
+            entity.Property(e => e.IsRemoved).HasDefaultValue(false);
             entity.Property(e => e.LastUpdated).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
             entity.HasOne(d => d.Address).WithMany(p => p.CoworkingCenters)
@@ -105,6 +110,7 @@ public partial class CoworkingDbContext : DbContext
             entity.HasKey(e => e.UserId).HasName("user_pkey");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.IsRemoved).HasDefaultValue(false);
 
             entity.HasOne(d => d.Role).WithMany(p => p.Users)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -135,6 +141,8 @@ public partial class CoworkingDbContext : DbContext
             entity.HasKey(e => e.WorkspaceHistoryId).HasName("workspace_history_pkey");
 
             entity.Property(e => e.ChangeAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.HasOne(d => d.Reservation).WithMany(p => p.WorkspaceHistories).HasConstraintName("workspace_history_reservation_id_fkey");
 
             entity.HasOne(d => d.Status).WithMany(p => p.WorkspaceHistories)
                 .OnDelete(DeleteBehavior.ClientSetNull)

@@ -6,7 +6,6 @@ using AutoFilterer.Types;
 using CoworkingApp.Data;
 using CoworkingApp.Models.DataModels;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration.EnvironmentVariables;
 
 namespace CoworkingApp.Services.Repositories;
 
@@ -27,19 +26,25 @@ public class CoworkingCenterRepository
     public Task<IEnumerable<CoworkingCenter>> GetCenters(CoworkingCenterFilter filter)
     {
         var query = context.CoworkingCenters.ApplyFilter(filter);
-            
+
+        query = query
+            .Include(cc => cc.Address)
+            .ThenInclude(a => a.City)
+            .ThenInclude(c => c.Country);
+
         query = filter.Latitude.ApplyTo(query, c => c.Address.Latitude);
-        query = filter.Longitude.ApplyTo(query, c => c.Address.Latitude);
-        
+        query = filter.Longitude.ApplyTo(query, c => c.Address.Longitude);
+
         if (filter.IncludeWorkspaces)
         {
-            query = query.Include(cc => cc.Workspaces).ThenInclude(w => w.WorkspacePricings)
-                       .Include(cc => cc.Workspaces).ThenInclude(w => w.WorkspaceHistories).ThenInclude(h => h.Status); 
+            query = query
+                .Include(cc => cc.Workspaces).ThenInclude(w => w.WorkspacePricings)
+                .Include(cc => cc.Workspaces).ThenInclude(w => w.WorkspaceHistories).ThenInclude(h => h.Status); 
         }
+
 
         if (filter.IncludeAddress)
         {
-            query = query.Include(cc => cc.Address).Include(cc => cc.Address.City).Include(cc => cc.Address.City.Country);
         }
 
         return Task.FromResult<IEnumerable<CoworkingCenter>>(query);
@@ -73,13 +78,13 @@ public class CoworkingCenterFilter : FilterBase
 
      [StringFilterOptions(StringFilterOption.Contains)]
      [CompareTo(nameof(CoworkingCenter.Name))]
-     public string? LikeName { get; set; }
+     public string? NameContains { get; set; }
 
      [StringFilterOptions(StringFilterOption.Contains)]
      [CompareTo(nameof(CoworkingCenter.Description))]
      public string? LikeDescription { get; set; }
-     public RangeFilter<decimal> Latitude { get; set; } = new();
-     public RangeFilter<decimal> Longitude { get; set; } = new();
+     public NullableRangeFilter<decimal> Latitude { get; set; } = new();
+     public NullableRangeFilter<decimal> Longitude { get; set; } = new();
      public bool IncludeWorkspaces { get; set; } = false;
      public bool IncludeAddress { get; set; } = false;
 }

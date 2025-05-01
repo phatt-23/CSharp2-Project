@@ -1,6 +1,6 @@
 namespace CoworkingApp.Models.DtoModels;
 
-/// Data DTO
+[PublicDataDto]
 public class WorkspaceStatusDto
 {
     public int Id { get; set; }
@@ -8,14 +8,14 @@ public class WorkspaceStatusDto
     public string Description { get; set; } = null!;
 }
 
-/// Request DTO
+[PublicRequestDto]
 public class WorkspaceStatusQueryRequestDto
 {
     public int? Id { get; set; }
     public string? Name { get; set; }
 }
 
-/// Response DTO
+[PublicResponseDto]
 public class WorkspaceStatusesResponseDto
 {
     public required int TotalCount { get; set; }

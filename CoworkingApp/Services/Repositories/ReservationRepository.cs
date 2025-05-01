@@ -6,6 +6,7 @@ using CoworkingApp.Data;
 using CoworkingApp.Models.DataModels;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
+using CoworkingApp.Models.Exceptions;
 
 namespace CoworkingApp.Services.Repositories;
 
@@ -62,25 +63,13 @@ public class ReservationRepository
     {
         if (reservation.StartTime <= DateTime.Now || reservation.EndTime <= DateTime.Now)
         {
-            throw new ReservationTimeInPastException("Start and end time must be future time.")
-            {
-                PropertyName = "StartTime"
-            };
+            throw new ReservationTimeInPastException("Start and end time must be future time.");
         }
 
         if (reservation.StartTime > reservation.EndTime)
         {
-            throw new ReservationTimeInPastException("Start time must be before the end time")
-            { 
-                PropertyName = "EndTime" 
-            };
+            throw new ReservationTimeInPastException("Start time must be before the end time");
         }
-
-        //  SELECT count(*) INTO v_clashing_reservation_count
-        //  FROM reservation r
-        //  WHERE NOT r.is_cancelled
-        //  AND r.workspace_id = NEW.workspace_id
-        //  AND NEW.start_time <= r.end_time AND NEW.end_time >= r.start_time;
 
         var clashingReservationCount = await context.Reservations
             .Where(x => !x.IsCancelled && 
@@ -98,20 +87,18 @@ public class ReservationRepository
             .Where(w => w.WorkspaceId == reservation.WorkspaceId)
             .Include(w => w.WorkspacePricings)
             .FirstOrDefaultAsync()
-                ??
-                throw new WorkspaceNotFoundException($"Workspace with id {reservation.WorkspaceId} not found");
+            ?? throw new WorkspaceNotFoundException($"Workspace with id {reservation.WorkspaceId} not found");
 
 
         // find the current pricing (time of reservation in range of the pricing)
         // if there aren't any throw an error
-        if (!workspace.WorkspacePricings.Any())
+        if (workspace.WorkspacePricings.Count == 0)
         {
             throw new NoPricingForWorkspaceException("There is no pricing for this workspace");
         }
 
-        var workspacePricing = workspace.WorkspacePricings.MaxBy(p => p.ValidFrom)
-            ??
-            throw new ConstraintException($"Workspace with id {reservation.WorkspaceId} doesn't have currently have a valid pricing.");
+        var workspacePricing = workspace.GetCurrentPricing()
+            ?? throw new ConstraintException($"Workspace with id {reservation.WorkspaceId} doesn't have currently have a valid pricing.");
 
         var totalPrice = workspacePricing.PricePerHour * (decimal)(reservation.EndTime - reservation.StartTime).TotalHours;
 
@@ -134,9 +121,11 @@ public class ReservationRepository
 
     public async Task<Reservation> UpdateReservation(Reservation newReservation)
     {
-        var oldReservation = (await context.Reservations
+        var oldReservation = await context.Reservations
             .Include(x => x.Workspace)
-            .FirstAsync(x => x.ReservationId == newReservation.ReservationId));
+            .FirstAsync(x => x.ReservationId == newReservation.ReservationId)
+            ?? throw new NotFoundException($"Reservation with id {newReservation.ReservationId} not found");
+
 
         // check if reservation with id exists
         if (await context.Reservations.FindAsync(newReservation.ReservationId) == null)
@@ -147,32 +136,21 @@ public class ReservationRepository
         // do the same checks as for adding a reservation
         if (newReservation.StartTime <= DateTime.Now || newReservation.EndTime <= DateTime.Now)
         {
-            throw new ReservationTimeInPastException("Start and end time must be future time.")
-            {
-                PropertyName = "StartTime"
-            };
+            throw new ReservationTimeInPastException("Start and end time must be future time.");
         }
 
         if (newReservation.StartTime > newReservation.EndTime)
         {
-            throw new ReservationTimeInPastException("Start time must be before the end time")
-            {
-                PropertyName = "EndTime"
-            };
+            throw new ReservationTimeInPastException("Start time must be before the end time");
         }
-
-        //  SELECT count(*) INTO v_clashing_reservation_count
-        //  FROM reservation r
-        //  WHERE NOT r.is_cancelled
-        //  AND r.workspace_id = NEW.workspace_id
-        //  AND NEW.start_time <= r.end_time AND NEW.end_time >= r.start_time;
 
         var clashingReservations = await context.Reservations
             .Where(x => !x.IsCancelled &&
                 x.ReservationId != oldReservation.ReservationId &&
                 x.WorkspaceId == oldReservation.WorkspaceId &&
                 newReservation.StartTime < x.EndTime &&
-                newReservation.EndTime > x.StartTime).ToListAsync();
+                newReservation.EndTime > x.StartTime)
+            .ToListAsync();
 
         if (clashingReservations.Count != 0)
         {
@@ -182,20 +160,18 @@ public class ReservationRepository
         var workspace = await context.Workspaces
             .Where(w => w.WorkspaceId == oldReservation.WorkspaceId)
             .Include(w => w.WorkspacePricings)
-            .FirstOrDefaultAsync()
-                ??
-                throw new WorkspaceNotFoundException($"Workspace with id {newReservation.WorkspaceId} not found");
+            .SingleOrDefaultAsync()
+            ?? throw new WorkspaceNotFoundException($"Workspace with id {newReservation.WorkspaceId} not found");
 
         // find the current pricing (time of reservation in range of the pricing)
         // if there aren't any throw an error
-        if (!workspace.WorkspacePricings.Any())
+        if (workspace.WorkspacePricings.Count == 0)
         {
             throw new NoPricingForWorkspaceException("There is no pricing for this workspace");
         }
 
-        var workspacePricing = workspace.WorkspacePricings.MaxBy(p => p.ValidFrom)
-            ??
-            throw new ConstraintException($"Workspace with id {newReservation.WorkspaceId} doesn't have currently have a valid pricing.");
+        var workspacePricing = workspace.GetCurrentPricing()
+            ?? throw new ConstraintException($"Workspace with id {newReservation.WorkspaceId} doesn't have currently have a valid pricing.");
 
         var totalPrice = workspacePricing.PricePerHour * (decimal)(newReservation.EndTime - newReservation.StartTime).TotalHours;
 
@@ -218,6 +194,7 @@ public enum ReservationSort
     StartTimeDesc,
     StartTimeAsc,
 }
+
 public class ReservationsFilter : FilterBase
 {
     [CompareTo(nameof(Reservation.ReservationId))] 
@@ -246,6 +223,7 @@ public class ReservationsFilter : FilterBase
 
     [CompareTo(nameof(Reservation.IsCancelled))] 
     public bool? IsCancelled { get; set; }
+
     public bool IncludeCustomer { get; set; } = false;
     public bool IncludeWorkspacePricing { get; set; } = false;
     public bool IncludeWorkspace { get; set; } = false;
@@ -254,13 +232,3 @@ public class ReservationsFilter : FilterBase
 }
 
 
-public class ReservationTimeInPastException(string message) : Exception(message)
-{
-    public string PropertyName { get; init; } = string.Empty;
-}
-
-public class WorkspaceNotFoundException(string message) : Exception(message);
-
-public class NoPricingForWorkspaceException(string message) : Exception(message);
-
-public class ClashingReservationTimeException(string message) : Exception(message);

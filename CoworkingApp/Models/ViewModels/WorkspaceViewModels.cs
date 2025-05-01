@@ -9,6 +9,7 @@ public class WorkspaceIndexViewModel
 {
     public IEnumerable<Workspace> Workspaces { get; set; } = [];
     public PaginationRequestDto Pagination { get; set; } = null!;
+    public int TotalCount { get; set; }
     public required WorkspaceSort Sort { get; set; }
 }
 

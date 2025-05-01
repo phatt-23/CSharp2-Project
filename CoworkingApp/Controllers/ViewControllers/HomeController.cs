@@ -1,21 +1,13 @@
 using System.Diagnostics;
-using System.Linq;
 using System.Security.Claims;
 using CoworkingApp.Models;
-using CoworkingApp.Models.DataModels;
+using CoworkingApp.Models.Misc;
 using CoworkingApp.Models.ViewModels;
-using CoworkingApp.Services;
 using CoworkingApp.Services.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CoworkingApp.Controllers.ViewControllers;
-
-public interface IHomeController
-{
-    public Task<IActionResult> Index(); 
-    public Task<IActionResult> Dashboard([FromQuery] ReservationSort reservationSort = ReservationSort.None); 
-}
 
 public class HomeController
     (
@@ -24,7 +16,7 @@ public class HomeController
         IReservationRepository reservationRepository,
         IUserRepository userRepository
     ) 
-    : Controller, IHomeController
+    : Controller
 {
     [HttpGet]
     public async Task<IActionResult> Index()
@@ -36,26 +28,27 @@ public class HomeController
             IncludeStatus = true,
         });
 
-        var coworkingCenters = await coworkingCenterRepository.GetCenters(new CoworkingCenterFilter()
-        {
-        });
+        var coworkingCenters = await coworkingCenterRepository.GetCenters(new CoworkingCenterFilter());
 
-        var model = new HomeIndexViewModel()
+        return View(new HomeIndexViewModel()
         {
             Workspaces = workspaces,
             CoworkingCenters = coworkingCenters
-        };
-            
-        return View(model);
+        });
     }
 
+    [HttpGet]
     [Authorize]
-    [HttpGet("dashboard")]
     public async Task<IActionResult> Dashboard([FromQuery] ReservationSort reservationSort = ReservationSort.None)
     {
-        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var userId = User.GetUserId();
 
-        var reservations = await reservationRepository.GetReservations(new ReservationsFilter()
+        if (userId == null)
+        {
+            return Unauthorized(new { message = "User not found" });
+        }
+
+        var reservations = await reservationRepository.GetReservations(new ReservationsFilter
         {
             CustomerId = userId,
             IsCancelled = false,
@@ -70,13 +63,13 @@ public class HomeController
 
         return View(new HomeDashboardViewModel 
         { 
-            Reservations = reservations,
             User = user,
+            Reservations = reservations,
             ReservationSort = reservationSort,
         });
     }
 
-    [HttpGet("privacy")]
+    [HttpGet]
     public async Task<IActionResult> Privacy()
     {
         return View();
@@ -85,6 +78,9 @@ public class HomeController
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        return View(new ErrorViewModel 
+        { 
+            RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier 
+        });
     }
 }

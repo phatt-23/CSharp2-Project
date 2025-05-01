@@ -2,9 +2,12 @@
 
 namespace CoworkingApp.Models.Exceptions;
 
-public class EmailTakenException(string message) : Exception(message);
+// Login
 
-public class WrongPasswordException(string message) : Exception(message)
-{
-    public readonly string PropertyName = nameof(UserLoginRequestDto.Password);
-}
+public class EmailTakenException(string message) : FormValidationException(message, nameof(UserRegisterRequestDto.Email));
+
+public class WrongPasswordException(string message) : FormValidationException(message, nameof(UserLoginRequestDto.Password));
+
+// Registration
+
+public class PasswordMismatchException(string message) : FormValidationException(message, nameof(UserRegisterRequestDto.ConfirmPassword));

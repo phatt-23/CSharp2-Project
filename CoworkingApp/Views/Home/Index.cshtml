@@ -17,22 +17,8 @@
 
 <main id="home-index">
 <section>
-    <h2>Welcome to DeskSpace</h2>
-    <p>
-        Discover, explore, and book modern coworking spaces tailored to your needs!
-        Whether you're a freelancer, a growing startup, or an enterprise team,
-        DeskSpace connects you with inspiring work environments in your city.
-    </p>
-    <p>
-        Get started by browsing our list below or use the map to find the perfect workspace.
-        Click on any center for details and availability, and book your spot today!
-    </p>
-</section>
-<section>
     <h2>
-        <a id="coworking-center-index-link" asp-controller="CoworkingCenter" asp-action="Index" title="Explore all coworking centers.">
-            Our Coworking Centers
-        </a>
+        @Html.ActionLink(linkText: "Our Coworking Centers", actionName: "Index", controllerName: "CoworkingCenter")
     </h2>
     <section>
         <ul>
@@ -50,7 +36,7 @@
         </ul>
     </section>
     <section aria-labelledby="goto-coworking-centers-index">
-        <a asp-controller="CoworkingCenter" asp-action="Index">See all coworking centers</a>
+        @Html.ActionLink(linkText: "See all coworking centers", actionName: "Index", controllerName: "CoworkingCenter")
     </section>
     <section aria-label="Map of coworking centers">
         <div id="map" style="height: 400px;"></div>
@@ -71,82 +57,98 @@
             const centers = @Html.Raw(centersJson)  // deserialize center data from Razor
 
             centers.forEach(center => {
-                L.marker([center.Address.Latitude, center.Address.Longitude]).addTo(map)
+                L.marker([center.Address.Latitude, center.Address.Longitude])
+                    .addTo(map)
                     .bindPopup(`
                         <strong><a href='/coworking-center/${center.CoworkingCenterId}'>${center.Name}</a></strong>
                         <br>
                         <p>${center.Description}</p>
                         <a align='right' href='/coworking-center/${center.CoworkingCenterId}'>View detail</a>
-                        `)
+                    `)
             })
         })
     </script>
 }
 
-
-@section Styles {<style>
-#home-index {
-    ul {
-        list-style: none;
-        margin: 1rem;
-        padding: 0;
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        column-gap: 0.5rem;
-        row-gap: 0.5rem;
-    }
-
-    ul li {
-        margin-block: 0.5rem;
-    }
-
-    ul article {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        border: 1px solid grey;
-        padding: 0.5rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-
-        h2, h3, h4 {
-            color: black;
-        }
-
-        p {
-            color: black;
-        }
-    }
-
-    #coworking-center-index-link {
-        color: black;
-    }
-
-    ul article:hover {
-        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-    }
-
-    ul a {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        text-decoration: none;
-    }
-
-    ul h4 {
-        margin: 0 0 .5em;
-    }
-
-    ul p {
-        margin: 0;
-        flex-grow: 1;
-    }
-
-    section[aria-labelledby="home-index-map"] {
-        margin-top: 4rem;
-    }
-
-    section[aria-labelledby="goto-coworking-centers-index"] {
-        text-align: right;
-    }
+@section Styles {
+<style>
+/* List container */
+#home-index ul {
+  list-style: none;
+  margin: 1rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  column-gap: 0.5rem;
+  row-gap: 0.5rem;
 }
-</style>}
+
+/* List items */
+#home-index ul li {
+  margin-block: 0.5rem;
+}
+
+/* Article cards */
+#home-index ul article {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid grey;
+  padding: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Headings inside cards */
+#home-index ul article h2,
+#home-index ul article h3,
+#home-index ul article h4 {
+  color: black;
+}
+
+/* Paragraphs inside cards */
+#home-index ul article p {
+  color: black;
+}
+
+/* Link to coworking centers index */
+#home-index #coworking-center-index-link {
+  color: black;
+}
+
+/* Hover effect on cards */
+#home-index ul article:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Links wrapping cards or content */
+#home-index ul a {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  text-decoration: none;
+}
+
+/* Specific heading margin inside lists */
+#home-index ul h4 {
+  margin: 0 0 0.5em;
+}
+
+/* Specific paragraph behavior inside lists */
+#home-index ul p {
+  margin: 0;
+  flex-grow: 1;
+}
+
+/* Map section spacing */
+#home-index section[aria-labelledby="home-index-map"] {
+  margin-top: 4rem;
+}
+
+/* "Go to coworking centers index" alignment */
+#home-index section[aria-labelledby="goto-coworking-centers-index"] {
+  text-align: right;
+  margin-bottom: 2rem;
+}
+
+</style>
+}

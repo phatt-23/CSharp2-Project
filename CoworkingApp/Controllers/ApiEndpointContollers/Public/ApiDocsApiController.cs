@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using System.Reflection;
 
-namespace CoworkingApp.Controllers.ApiEndpointContollers.PublicApiControllers;
+namespace CoworkingApp.Controllers.ApiEndpointContollers.Public;
 
 public interface IApiDocsApi
 {
@@ -31,7 +31,6 @@ public class ApiDocsApiController : Controller, IApiDocsApi
         var endpoints = GetEndpoints();
         return Ok(endpoints);
     }
-
 
     private static bool IsComplex(Type type)
     {

@@ -33,7 +33,12 @@ public class TimelineData
 
         // the time span of the timeline (max 1 year ahead)
         var timelineStartTime = startTime = DateTime.Now;
-        var timelineEndTime = endTime = minDateTime(reservations.Where(x => !x.IsCancelled).Max(x => x.EndTime), DateTime.Today.AddYears(1));
+        var timelineEndTime = endTime = minDateTime(
+            reservations
+                .Where(r => !r.IsCancelled && r.EndTime >= timelineStartTime)
+                .MaxBy(r => r.EndTime)?.EndTime ?? DateTime.Today.AddYears(1), 
+            DateTime.Today.AddYears(1)
+        );
 
         totalHours = (timelineEndTime - timelineStartTime).TotalHours;
 
@@ -46,8 +51,9 @@ public class TimelineData
 
         foreach (var reservation in reservations
             .AsQueryable()
+            .Where(x => !x.IsCancelled && timelineStartTime <= x.EndTime && x.StartTime <= timelineEndTime)
             .OrderBy(r => r.StartTime)
-            .Where(x => !x.IsCancelled && timelineStartTime <= x.EndTime && x.StartTime <= timelineEndTime).ToList())
+            .ToList())
         {
             var reservationBelongsToUser = reservation.CustomerId == userId;
 

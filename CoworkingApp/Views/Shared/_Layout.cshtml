@@ -1,6 +1,10 @@
 ﻿@using System.Security.Claims
+
+
 <!DOCTYPE html>
 <html lang="en">
+
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -30,8 +34,7 @@
             gap: 1em;
         }
 
-        #layout-body 
-        #layout-nav {
+        #layout-body #layout-nav {
             display: flex;
             position: sticky;
             top: 0;
@@ -43,22 +46,17 @@
             padding-inline: 1em;
         }
 
-        #layout-body
-        #layout-nav 
-        .nav-list {
+        #layout-body #layout-nav 
+            .nav-list {
             display: flex;
         }
-            
-        #layout-body 
-        #layout-nav 
-        .nav-list 
-        .nav-item {
+
+        #layout-body #layout-nav .nav-list .nav-item {
             display: inline-block;
             margin-left: 1rem;
         }
 
-        #layout-body
-        #layout-footer {
+        #layout-body #layout-footer {
             display: flex;
             flex-direction: row;
             align-content: center;
@@ -68,60 +66,78 @@
     </style>
 
     @* For local styling of views. This pastes whatever is in the Styles section. *@
-
     @await RenderSectionAsync("Styles", required: false)
 </head>
 
+
 <body id="layout-body">
+
+
+    <!-- Navigation Bar -->
     <nav id="layout-nav">
-        <a asp-controller="Home" asp-action="Index">DeskSpace</a>
+        @Html.ActionLink(linkText: "C#", actionName: "Index", controllerName: "Home")
         <ul class="nav-list">
-            <li class="nav-item"><a asp-controller="CoworkingCenter" asp-action="Index">coworking centers</a></li>
-            <li class="nav-item"><a asp-controller="Workspace" asp-action="Index">workspaces</a></li>
+            <li class="nav-item">
+                @Html.ActionLink(linkText: "Coworking Centers", actionName: "Index", controllerName: "CoworkingCenter")
+            </li>
+            <li class="nav-item">
+                @Html.ActionLink(linkText: "Workspaces", actionName: "Index", controllerName: "Workspace")
+            </li>
         </ul>
         <ul class="nav-list">
             @if (User.Identity != null && User.Identity.IsAuthenticated)
             {
                 <li class="nav-item">
-                    <a asp-controller="Home" asp-action="Dashboard">@User.FindFirst(ClaimTypes.Email)?.Value</a>
+                    @Html.ActionLink(linkText: User.FindFirstValue(ClaimTypes.Email), actionName: "Dashboard", controllerName: "Home")
                 </li>
                 <li class="nav-item">
-                    <form method="post" asp-action="Logout" asp-controller="Account">
-                        <button type="submit">logout</button>
-                    </form>
+                    @using (Html.BeginForm(actionName: "Logout", controllerName: "Account"))
+                    {
+                        <button type="submit">Logout</button>
+                    }
                 </li>
             }
             else
             {
                 <li class="nav-item">
-                    <a asp-controller="Account" asp-action="Register">register</a>
+                    @Html.ActionLink(linkText: "Register", actionName: "Register", controllerName: "Account")
                 </li>
                 <li class="nav-item">
-                    <a asp-controller="Account" asp-action="Login">login</a>
+                    @Html.ActionLink(linkText: "Login", actionName: "Login", controllerName: "Account")
                 </li>
             }
         </ul>
     </nav>
 
+
+    <!-- Main -->
     <main id="layout-main" role="main">
         @RenderBody()
     </main>
 
+
+    <!-- Footer -->
     <footer id="layout-footer">
         <section>
-            <a asp-controller="Home" asp-action="Privacy">privacy</a> 
-            | <a asp-controller="Developer" asp-action="Index">dev</a>
+            @Html.ActionLink(linkText: "Privacy", actionName: "Privacy", controllerName: "Home")
+            | 
+            @Html.ActionLink(linkText: "Dev", actionName: "Index", controllerName: "Developer")
         </section>
         <section>
             <span>&copy; 2025 - DeskSpace</span> 
         </section>
     </footer>
 
+
+    <!-- Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/lib/leaflet/dist/leaflet.js"></script>
-
     @await RenderSectionAsync("Scripts", required: false)
+
+
 </body>
+
+
 </html>

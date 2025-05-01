@@ -15,15 +15,6 @@ public class WorkspacePricingDto
     public DateTime? ValidUntil { get; set; }
 }
 
-// Lighter => for workspace dto responses, no cyclic references
-public class LatestWorkspacePricingDto
-{
-    public int Id { get; set; }
-    public int WorkspaceId { get; set; }
-    public decimal PricePerHour { get; set; }
-    public DateTime ValidFrom { get; set; }
-}
-
 public class AdminWorkspacePricingDto : WorkspacePricingDto
 {
     public virtual ICollection<ReservationDto> Reservations { get; set; } = [];

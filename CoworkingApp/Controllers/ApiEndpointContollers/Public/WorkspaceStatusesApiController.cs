@@ -4,14 +4,13 @@ using CoworkingApp.Services;
 using CoworkingApp.Types;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CoworkingApp.Controllers.ApiEndpointContollers.PublicApiControllers;
+namespace CoworkingApp.Controllers.ApiEndpointContollers.Public;
 
 public interface IWorkspaceStatusesApi
 {
     Task<ActionResult<WorkspaceStatusesResponseDto>> GetAsync([FromQuery] WorkspaceStatusQueryRequestDto request);
     Task<IActionResult> GetByIdAsync(int id);
 } 
-
 
 [PublicApiController]
 [Route("/api/workspace-status")]

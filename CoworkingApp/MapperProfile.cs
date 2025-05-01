@@ -1,6 +1,7 @@
 using AutoMapper;
 using CoworkingApp.Models.DataModels;
 using CoworkingApp.Models.DtoModels;
+using Microsoft.EntityFrameworkCore;
 
 namespace CoworkingApp;
 
@@ -39,6 +40,7 @@ public class MapperProfile : Profile
             // count related Workspaces
             .ForMember(d => d.WorkspaceCount, opt => opt.MapFrom(s => s.Workspaces.Count));
 
+        /*
         CreateMap<CoworkingCenterCreateRequestDto, CoworkingCenter>()
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
             .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
@@ -59,39 +61,51 @@ public class MapperProfile : Profile
             .ForMember(dest => dest.CityId, opt => opt.Ignore())
             .ForMember(dest => dest.Latitude, opt => opt.Ignore())
             .ForMember(dest => dest.Longitude, opt => opt.Ignore());
+        */
 
-        
-
-        CreateMap<CoworkingCenter, AdminCoworkingCenterDto>().ReverseMap();
-
+        CreateMap<CoworkingCenterCreateRequestDto, CoworkingCenter>();
 
 
 
         CreateMap<Workspace, WorkspaceDto>()
-            .ForMember(dest => dest.LatestPricing, opt => opt.MapFrom(src => src.WorkspacePricings.FirstOrDefault()))
-            .ReverseMap();
+            .ForMember(dest => dest.PricePerHour, opt => opt.MapFrom(src =>
+                src.WorkspacePricings
+                    .OrderByDescending(wp => wp.ValidFrom)
+                    .Select(wp => wp.PricePerHour)
+                    .FirstOrDefault(1000)
+            ))
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src =>
+                Enum.Parse<WorkspaceStatusType>(src.WorkspaceHistories
+                    .OrderByDescending(wh => wh.ChangeAt)
+                    .First().Status.Name)
+            ));
+
+        CreateMap<WorkspaceDto, Workspace>()
+            .ForMember(w => w.WorkspacePricings, o => o.Ignore());
 
         CreateMap<Workspace, WorkspaceDetailDto>().ReverseMap();
 
-        CreateMap<Workspace, AdminWorkspaceDto>().ReverseMap();
+        CreateMap<Workspace, AdminWorkspaceDto>()
+            
+            .ReverseMap();
 
         CreateMap<Workspace, AdminWorkspaceDetailDto>().ReverseMap();
-        
 
 
 
         CreateMap<WorkspaceStatus, WorkspaceStatusDto>().ReverseMap();
-        
-
 
 
         CreateMap<Reservation, ReservationDto>().ReverseMap();
 
-        CreateMap<ReservationCreateRequestDto, Reservation>().ReverseMap();
+        CreateMap<Reservation, AnonymousReservationDto>().ReverseMap();
 
         CreateMap<Reservation, AdminReservationDto>().ReverseMap();
+        
+        CreateMap<ReservationCreateRequestDto, Reservation>().ReverseMap();
 
         CreateMap<ReservationUpdateRequestDto, Reservation>().ReverseMap();
+
 
 
         CreateMap<User, UserDto>().ReverseMap();
@@ -105,17 +119,12 @@ public class MapperProfile : Profile
         
         CreateMap<WorkspacePricing, WorkspacePricingDto>().ReverseMap();
 
-        CreateMap<WorkspacePricing, LatestWorkspacePricingDto>().ReverseMap();
-
         CreateMap<WorkspacePricing, AdminWorkspacePricingDto>().ReverseMap();
 
+        CreateMap<WorkspacePricingCreateRequestDto, WorkspacePricing>().ReverseMap();
 
-        
+
         CreateMap<WorkspaceHistory, WorkspaceHistoryDto>().ReverseMap();
-
-
-
-
 
     }
 }

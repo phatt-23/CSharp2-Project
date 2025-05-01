@@ -10,6 +10,7 @@ namespace CoworkingApp.Controllers.ApiEndpointContollers.AdminApiControllers;
 public interface IAdminCoworkingCentersApi
 {
     Task<ActionResult<AdminCoworkingCenterQueryResponseDto>> GetCenters([FromQuery] CoworkingCenterQueryRequestDto? request = null);
+    Task<ActionResult<AdminCoworkingCenterDto>> GetCenter(int id);
     Task<ActionResult<AdminCoworkingCenterDto>> CreateCenter([FromBody] CoworkingCenterCreateRequestDto request);
     Task<ActionResult<AdminCoworkingCenterDto>> UpdateCenter(int coworkingCenterId, [FromBody] CoworkingCenterUpdateRequestDto request);
 }
@@ -24,13 +25,11 @@ public class AdminCoworkingCenterApiController
     : Controller, IAdminCoworkingCentersApi
 {
     [HttpGet]
-    [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<AdminCoworkingCenterQueryResponseDto>> 
-        GetCenters([FromQuery] CoworkingCenterQueryRequestDto? request = null)
+    public async Task<ActionResult<AdminCoworkingCenterQueryResponseDto>> GetCenters([FromQuery] CoworkingCenterQueryRequestDto request)
     {
         try
         {
-            var centers = await coworkingCenterService.GetCenters(request ?? new ());
+            var centers = await coworkingCenterService.GetCenters(request);
 
             return Ok(new AdminCoworkingCenterQueryResponseDto
             {
@@ -46,10 +45,24 @@ public class AdminCoworkingCenterApiController
         }
     }
 
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<AdminCoworkingCenterDto>> GetCenter(int id)
+    {
+        try
+        {
+            var center = await coworkingCenterService.GetCenterById(id);
+            var centerDto = mapper.Map<AdminCoworkingCenterDto>(center);
+            return centerDto;
+        }
+        catch (Exception ex)
+        {
+            return NotFound(ex.Message);
+        }
+    }
+
     [HttpPost]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<AdminCoworkingCenterDto>> 
-        CreateCenter([FromBody] CoworkingCenterCreateRequestDto request)
+    public async Task<ActionResult<AdminCoworkingCenterDto>> CreateCenter([FromBody] CoworkingCenterCreateRequestDto request)
     {
         try
         {
@@ -65,8 +78,7 @@ public class AdminCoworkingCenterApiController
 
     [HttpPut]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<AdminCoworkingCenterDto>> 
-        UpdateCenter(int coworkingCenterId, [FromBody] CoworkingCenterUpdateRequestDto request)
+    public async Task<ActionResult<AdminCoworkingCenterDto>> UpdateCenter(int coworkingCenterId, [FromBody] CoworkingCenterUpdateRequestDto request)
     {
         try
         {

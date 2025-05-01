@@ -6,6 +6,7 @@ using CoworkingApp.Data;
 using CoworkingApp.Models.DataModels;
 using CoworkingApp.Models.DtoModels;
 using Microsoft.EntityFrameworkCore;
+using System.Xml.XPath;
 
 namespace CoworkingApp.Services.Repositories;
 
@@ -34,7 +35,9 @@ public class WorkspaceRepository
 
         if (filter.IncludeHistories)
         {
-            query = query.Include(w => w.WorkspaceHistories);
+            query = query
+                .Include(w => w.WorkspaceHistories)
+                .ThenInclude(wh => wh.Status);
         }
 
         if (filter.IncludeCoworkingCenter)
@@ -54,6 +57,21 @@ public class WorkspaceRepository
         if (filter.HasPricing)
         {
             query = query.Where(w => w.WorkspacePricings.Any());
+        }
+
+        if (filter.PricePerHour.Max != null)
+        {
+            query = query.Where(w => w.WorkspacePricings
+                .OrderByDescending(wp => wp.PricePerHour)
+                .First().PricePerHour <= filter.PricePerHour.Max);
+        }
+
+        if (filter.PricePerHour.Min != null)
+        {
+
+            query = query.Where(w => w.WorkspacePricings
+                .OrderByDescending(wp => wp.PricePerHour)
+                .First().PricePerHour >= filter.PricePerHour.Min);
         }
 
         switch (filter.Sort)
@@ -117,6 +135,8 @@ public class WorkspaceFilter : FilterBase
 
     [CompareTo(nameof(Workspace.IsRemoved))]
     public bool? IsRemoved { get; set; }
+
+    public NullableRangeFilter<decimal> PricePerHour { get; set; } = new();
 
     public bool IncludeReservations { get; set; } = false;
     public bool IncludeHistories { get; set; } = false;

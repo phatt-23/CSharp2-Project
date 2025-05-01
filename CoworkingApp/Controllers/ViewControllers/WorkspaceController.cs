@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using CoworkingApp.Models.DataModels;
 using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Models.Misc;
 using CoworkingApp.Models.ViewModels;
@@ -9,7 +10,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CoworkingApp.Controllers.ViewControllers;
 
-[Route("workspace")]
 public class WorkspaceController
     (
         IWorkspaceService workspaceService,
@@ -31,19 +31,21 @@ public class WorkspaceController
             IncludeCoworkingCenter = true,
             IncludeStatus = true,
             IncludePricings = true,
+            IncludeHistories = true,
             IsRemoved = false,
             Sort = sort,
         });
-        
+
         return View(new WorkspaceIndexViewModel
         {
-            Workspaces = workspaces,
+            Workspaces = Pagination.Paginate(workspaces, out int totalCount, pagination.PageNumber, pagination.PageSize),
             Pagination = pagination,
+            TotalCount = totalCount,
             Sort = sort,
         });
     }
 
-    [HttpGet("{id:int}")]
+    [HttpGet]
     public async Task<IActionResult> Detail(int id)
     {
         try
@@ -63,21 +65,26 @@ public class WorkspaceController
 
             var center = await coworkingCenterService.GetCenterById(workspace.CoworkingCenterId);
 
-            var segments = TimelineData.ComputeTimelineSegments(reservations, GetUserId(),  out double totalHours, out DateTime timelineStartTime, out DateTime timelineEndTime);
+            var userId = User.GetUserId() ?? -1;
 
-            return View(new WorkspaceDetailViewModel 
+            var segments = TimelineData.ComputeTimelineSegments(reservations, userId,  
+                out double totalHours, 
+                out DateTime timelineStartTime, 
+                out DateTime timelineEndTime);
+
+            return View(new WorkspaceDetailViewModel
             {
-                Workspace = workspace, 
-                Histories = histories, 
+                Workspace = workspace,
+                Histories = histories,
                 CoworkingCenter = center,
-                Reservations = reservations.OrderBy(x => x.StartTime), 
+                Reservations = reservations.OrderBy(x => x.StartTime),
                 TimelineSegments = segments,
                 TimelineStart = timelineStartTime,
                 TimelineEnd = timelineEndTime,
                 TotalHours = totalHours,
-                LatestWorkspaceHistory = histories.MaxBy(x => x.ChangeAt),
-                PricePerHour = workspace.WorkspacePricings.MaxBy(x => x.ValidFrom)!.PricePerHour,
-                UserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value.TryParseToInt() ?? -1,
+                LatestWorkspaceHistory = workspace.GetCurrentHistory(),
+                PricePerHour = workspace.GetCurrentPricePerHour(),
+                UserId = User.GetUserId() ?? -1,
             });
         }
         catch (Exception ex)
@@ -87,7 +94,7 @@ public class WorkspaceController
     }
 
     [Authorize]
-    [HttpGet("{id:int}/reserve")]
+    [HttpGet]
     public async Task<IActionResult> Reserve(int id, DateTime? startTime, DateTime? endTime)
     {
         var workspace = await workspaceService.GetWorkspaceById(id);
@@ -96,7 +103,16 @@ public class WorkspaceController
             WorkspaceId = workspace.WorkspaceId,
         });
 
-        var segments = TimelineData.ComputeTimelineSegments(reservations, GetUserId(),  out double totalHours, out DateTime timelineStartTime, out DateTime timelineEndTime);
+        var userId = User.GetUserId();
+        if (userId == null)
+        {
+            return Unauthorized("User not authorized.");
+        }
+
+        var segments = TimelineData.ComputeTimelineSegments(reservations, userId.Value,  
+            out double totalHours, 
+            out DateTime timelineStartTime, 
+            out DateTime timelineEndTime);
 
         return View(new WorkspaceReserveViewModel
         {
@@ -106,8 +122,8 @@ public class WorkspaceController
             TotalHours = totalHours,
             TimelineStart = timelineStartTime,
             TimelineEnd = timelineEndTime,
-            PricePerHour = workspace.WorkspacePricings.MaxBy(x => x.ValidFrom)!.PricePerHour,
-            UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value),
+            PricePerHour = workspace.GetCurrentPricePerHour(),
+            UserId = User.GetUserId() ?? -1,
             Request = new ReservationCreateRequestDto
             {
                 WorkspaceId = workspace.WorkspaceId,
@@ -118,7 +134,7 @@ public class WorkspaceController
     }
 
     [Authorize]
-    [HttpPost("{id:int}/reserve")]
+    [HttpPost]
     public async Task<IActionResult> Reserve(int id, ReservationCreateRequestDto request) 
     {
         if (!ModelState.IsValid) 
@@ -126,16 +142,20 @@ public class WorkspaceController
             goto loopBack;
         }
 
+        var userId = User.GetUserId();
+        if (userId == null)
+        {
+            return Unauthorized("User not authorized.");
+        }
+
         try
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            var reservation = await reservationService.CreateReservation(userId, request);
+            var reservation = await reservationService.CreateReservation(userId.Value, request);
             return RedirectToAction("Detail", "Reservation", new { id = reservation.ReservationId });
         }
         catch (Exception ex)
         {
             ViewData["ErrorMessage"] = ex.Message;
-
             goto loopBack;
         }
 
@@ -146,23 +166,19 @@ public class WorkspaceController
             WorkspaceId = workspace.WorkspaceId,
         });
 
-        var segments = TimelineData.ComputeTimelineSegments(reservations, GetUserId(),  out double totalHours, out DateTime timelineStartTime, out DateTime timelineEndTime);
+        var segments = TimelineData.ComputeTimelineSegments(reservations, -1,  out double totalHours, out DateTime timelineStartTime, out DateTime timelineEndTime);
 
         return View(new WorkspaceReserveViewModel
         {
             Workspace = workspace,
             Reservations = reservations.OrderBy(x => x.StartTime),
+            UserId = -1,
+            Request = request,
+            PricePerHour = workspace.GetCurrentPricePerHour(),
             TimelineSegments = segments,
             TotalHours = totalHours,
             TimelineStart = timelineStartTime,
             TimelineEnd = timelineEndTime,
-            UserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value),
-            PricePerHour = workspace.WorkspacePricings.MaxBy(x => x.ValidFrom)!.PricePerHour,
-            Request = request,
         });
     }
-
-
-    private int GetUserId() => User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value.TryParseToInt() ?? -1;
-
 }

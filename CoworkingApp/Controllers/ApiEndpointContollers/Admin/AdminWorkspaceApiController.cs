@@ -11,15 +11,17 @@ namespace CoworkingApp.Controllers.ApiEndpointContollers.AdminApiControllers;
 
 public interface IAdminWorkspaceApi
 {
-    Task<ActionResult<IEnumerable<AdminWorkspaceDto>>>  GetWorkspaces([FromQuery] AdminWorkspaceQueryRequestDto request);
-    Task<ActionResult<AdminWorkspaceDto>>               CreateWorkspace([FromBody] WorkspaceCreateRequestDto request);
-    Task<ActionResult<AdminWorkspaceDto>>               UpdateWorkspaceDetail(int workspaceId, [FromBody] WorkspaceUpdateRequestDto request);
-    Task<ActionResult<AdminWorkspaceDto>>               ChangeWorkspaceStatus(int workspaceId, [FromQuery] WorkspaceStatusType statusType);
-    Task<ActionResult<AdminWorkspaceDto>>               DeleteWorkspace(int workspaceId);
+    Task<ActionResult<ICollection<AdminWorkspaceDto>>> GetWorkspaces([FromQuery] AdminWorkspaceQueryRequestDto request);
+    Task<ActionResult<AdminWorkspaceDto>> GetWorkspace(int id);
+    Task<ActionResult<AdminWorkspaceDto>> CreateWorkspace([FromBody] WorkspaceCreateRequestDto request);
+    Task<ActionResult<AdminWorkspaceDto>> UpdateWorkspace([FromBody] WorkspaceUpdateRequestDto request);
+    Task<ActionResult<AdminWorkspaceDto>> ChangeWorkspaceStatus(int workspaceId, [FromQuery] WorkspaceStatusType statusType);
+    Task<ActionResult<AdminWorkspaceDto>> DeleteWorkspace(int workspaceId);
 }
 
 
 [AdminApiController]
+[Authorize(Roles = "Admin")]
 [Route("api/admin/workspace")]
 public class AdminWorkspaceApiController
     (
@@ -29,26 +31,41 @@ public class AdminWorkspaceApiController
     : Controller, IAdminWorkspaceApi
 {
     [HttpGet]
-    [Authorize(Roles="Admin")]
-    public async Task<ActionResult<IEnumerable<AdminWorkspaceDto>>> GetWorkspaces([FromQuery] AdminWorkspaceQueryRequestDto request)
+    public async Task<ActionResult<ICollection<AdminWorkspaceDto>>> GetWorkspaces([FromQuery] AdminWorkspaceQueryRequestDto request)
     {
         var workspaces = await workspaceService.GetWorkspacesForAdmin(request);
-        
         var workspaceDtos = mapper.Map<IEnumerable<WorkspaceDto>>(workspaces);
-        
         return Ok(workspaceDtos);
     }
 
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<AdminWorkspaceDto>> GetWorkspace(int id)
+    {
+        try
+        {
+            var workspace = await workspaceService.GetWorkspaceById(id);
+            var workspaceDto = mapper.Map<AdminWorkspaceDto>(workspace);
+            return workspaceDto;
+        }
+        catch (Exception ex)
+        {
+            return NotFound(ex.Message);
+        }
+    }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<AdminWorkspaceDto>> CreateWorkspace([FromBody] WorkspaceCreateRequestDto request)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         try
         {
             var workspace = await workspaceService.CreateWorkspace(request);
-            return Ok(mapper.Map<WorkspaceDto>(workspace));
+            var worksapceDto = mapper.Map<WorkspaceDto>(workspace);
+            return Ok(worksapceDto);
         }
         catch (Exception e)
         {
@@ -56,14 +73,13 @@ public class AdminWorkspaceApiController
         }
     }
 
-    [HttpPut("{id:int}")]
-    [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<AdminWorkspaceDto>> UpdateWorkspaceDetail(int id, [FromBody] WorkspaceUpdateRequestDto request)
+    [HttpPut]
+    public async Task<ActionResult<AdminWorkspaceDto>> UpdateWorkspace([FromBody] WorkspaceUpdateRequestDto request)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
         try
         {
-            var workspace = await workspaceService.UpdateWorkspace(id, request);
+            var workspace = await workspaceService.UpdateWorkspace(request);
             return Ok(mapper.Map<AdminWorkspaceDto>(workspace));
         }
         catch (Exception ex)
@@ -73,13 +89,14 @@ public class AdminWorkspaceApiController
     }
     
     [HttpPut("{id:int}/status")]
-    [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<AdminWorkspaceDto>> ChangeWorkspaceStatus(int id, [FromQuery]WorkspaceStatusType statusType)
+    public async Task<ActionResult<AdminWorkspaceDto>> ChangeWorkspaceStatus(int id, [FromQuery] WorkspaceStatusType statusType)
     {
         try
         {
             if (await workspaceService.UpdateWorkspaceStatus(id, statusType))
-                return Ok(new { message = "Workspace status changed." });
+            {
+                return Ok(new { message = $"Workspace status changed to {statusType}." });
+            }
             
             return BadRequest(new { message = "Unable to change workspace status." });
         }
@@ -90,7 +107,6 @@ public class AdminWorkspaceApiController
     }
     
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<AdminWorkspaceDto>> DeleteWorkspace(int id)
     {
         try

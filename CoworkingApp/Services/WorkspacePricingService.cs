@@ -1,4 +1,5 @@
 using AutoMapper;
+using CoworkingApp.Data;
 using CoworkingApp.Models.DataModels;
 using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Models.Exceptions;
@@ -18,7 +19,8 @@ public interface IWorkspacePricingService
 public class WorkspacePricingService
     (
         IWorkspacePricingRepository pricingRepository,
-        IWorkspaceRepository workspaceRepository,
+        IWorkspaceService workspaceService,
+        CoworkingDbContext context,
         IMapper mapper
     )
     : IWorkspacePricingService
@@ -51,15 +53,15 @@ public class WorkspacePricingService
             if (request.ValidFrom > request.ValidUntil)
                 throw new Exception("Valid from must be before valid until");
         }
-        else
-        {
-            request.ValidFrom = now;
-            request.ValidUntil = null;  // just to be more obvious
-        }
 
         // check if workspace exists (throws)
-        var workspaces = await workspaceRepository.GetWorkspaces(new WorkspaceFilter { Id = request.WorkspaceId });
-        var workspace = workspaces.Single();
+        var workspace = await context.Workspaces.SingleOrDefaultAsync(w => w.WorkspaceId == request.WorkspaceId);
+        if (workspace == null)
+        {
+            throw new Exception($"No workspace with '{request.WorkspaceId}' was found.");
+        }
+
+        //var workspace = await workspaceService.GetWorkspaceById(request.WorkspaceId);
 
         // update the latest pricing
         var latestPricing = await GetLatestPricingOfWorkspace(workspace);

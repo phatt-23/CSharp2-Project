@@ -3,29 +3,30 @@ using CoworkingApp.Models.Exceptions;
 using CoworkingApp.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
 
 namespace CoworkingApp.Controllers.ViewControllers;
 
-[Route("account")]
 public class AccountController
     (
-        IAuthService authService,
-        IUserService userService
+        IAuthService authService
     )
     : Controller
 {
-    [HttpGet("login")]
-    public IActionResult Login()
+    [HttpGet]
+    public async Task<IActionResult> Login()
     {
         return View(new UserLoginRequestDto());
     }
 
-    [HttpPost("login")]
+    [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Login([FromBody] UserLoginRequestDto request)
+    public async Task<IActionResult> Login(UserLoginRequestDto request)
     {
-        if (!ModelState.IsValid) 
+        if (!ModelState.IsValid)
+        {
             return View(request);
+        }
 
         try
         {
@@ -33,36 +34,28 @@ public class AccountController
             await authService.StoreCookies(Response, tokens);
             return RedirectToAction("Index", "Home");
         }
-        catch (WrongPasswordException ex)
+        catch (FormValidationException ex)
         {
             ModelState.AddModelError(ex.PropertyName, ex.Message);
-            return View(request);
         }
         catch (Exception ex)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
-            return View(request);
         }
+
+        return View(request);
     }
 
-    [HttpGet("register")]
-    public IActionResult Register()
+    [HttpGet]
+    public async Task<IActionResult> Register()
     {
         return View(new UserRegisterRequestDto());
     }
 
-    [HttpPost("register")]
+    [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(UserRegisterRequestDto requestDto)
     {
-        // check for email uniqueness
-        var users = await userService.GetUsers(new UserQueryRequestDto() { Email = requestDto.Email });
-
-        if (users.Any())
-        {
-            ModelState.AddModelError("Email", "Email is already taken.");
-        }
-
         if (!ModelState.IsValid)
         {
             return View(requestDto);
@@ -71,7 +64,18 @@ public class AccountController
         try
         {
             await authService.RegisterUser(requestDto);
-            return RedirectToAction("Login");
+            var tokens = await authService.LoginUser(new UserLoginRequestDto
+            {
+                Email = requestDto.Email,
+                Password = requestDto.Password
+            });
+            await authService.StoreCookies(Response, tokens);
+
+            return RedirectToAction("Index", "Home");
+        }
+        catch (FormValidationException ex)
+        {
+            ModelState.AddModelError(ex.PropertyName, ex.Message);
         }
         catch (Exception ex)
         {
@@ -82,10 +86,10 @@ public class AccountController
     }
     
     [Authorize]
-    [HttpPost("logout")]
+    [HttpPost]
     public async Task<IActionResult> Logout()
     {
-        await authService.LogoutUser(Response);
+        await authService.LogoutUser(this.Response);
         return RedirectToAction("Index", "Home"); 
     }
 }

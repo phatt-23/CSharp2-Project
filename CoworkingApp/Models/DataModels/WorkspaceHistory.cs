@@ -23,6 +23,14 @@ public partial class WorkspaceHistory
     [Column("change_at", TypeName = "timestamp without time zone")]
     public DateTime ChangeAt { get; set; }
 
+    [Column("reservation_id")]
+    public int? ReservationId { get; set; }
+
+    [ForeignKey("ReservationId")]
+    [InverseProperty("WorkspaceHistories")]
+    [JsonIgnore]
+    public virtual Reservation? Reservation { get; set; }
+
     [ForeignKey("StatusId")]
     [InverseProperty("WorkspaceHistories")]
     [JsonIgnore]

@@ -1,5 +1,7 @@
+@using CoworkingApp.Models.DataModels
 @using CoworkingApp.Services
 @using CoworkingApp.Services.Repositories
+@using System.Globalization
 @model CoworkingApp.Models.ViewModels.WorkspaceIndexViewModel;
 
 @{
@@ -9,11 +11,11 @@
     ViewBag.Title = "Coworking Centers";
     Layout = "_Layout";
 
-    var pageCount = (int)Math.Ceiling(Model.Workspaces.Count() / (decimal)Model.Pagination.PageSize);
-    var paginatedWorkspaces = Pagination.Paginate(Model.Workspaces, Model.Pagination.PageNumber, Model.Pagination.PageSize).ToList();
+    var pageCount = Math.Ceiling(Model.TotalCount / (decimal)Model.Pagination.PageSize);
 
     // send this data to the js side below to add them onto the leaflet map
-    var workspaceData = paginatedWorkspaces.AsQueryable()
+    var workspaceData = Model.Workspaces
+        .AsQueryable()
         .Select(w => new {
             w.WorkspaceId,
             w.Name,
@@ -27,45 +29,63 @@
 
 @section Scripts {
     <script>
-        let centersMap;
+        let centersMap = undefined;
 
         document.addEventListener("DOMContentLoaded", async function () {
-        centersMap = L.map( $('#centers-map')[0] ).setView([50.0755, 14.4378], 2)  // prague
+            const map = $('#centers-map')[0]
+            centersMap = L.map(map).setView([50.0755, 14.4378], 2)  // prague
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(centersMap)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(centersMap)
 
-        const workspaces = @Html.Raw(workspaceJson)  // deserialize center data from Razor
+            const workspaces = @Html.Raw(workspaceJson)  // deserialize center data from Razor
 
-        workspaces.forEach(ws => {
-        L.marker([ws.Address.Latitude, ws.Address.Longitude]).addTo(centersMap)
-        .bindPopup(`
-        <strong><a href='/workspace/${ws.WorkspaceId}'>${ws.Name}</a></strong>
-        <br>
-        <p><strong>${ws.AddressDisplayName}</strong></p>
-        <p>${ws.Description}</p>
-        <a align='right' href='/workspace/${ws.WorkspaceId}'>View detail</a>
-        `)
-        })
+            let markers = new Map()
+
+            workspaces.forEach(ws => {
+                const { Latitude: lat, Longitude: lng } = ws.Address
+                const key = `${lat},${lng}`
+
+                if (markers.has(key)) {
+                    const marker = markers.get(key)
+                    const extra = `
+                        <strong><a href='/Workspace/Detail/${ws.WorkspaceId}'>${ws.Name}</a></strong>
+                        <br>
+                    `
+                    const existing = marker.getPopup().getContent()
+                    marker.getPopup().setContent(extra + existing)
+                } else {
+                    const marker = L.marker([lat, lng])
+                        .addTo(centersMap)
+                        .bindPopup(`
+                            <strong><a href='/Workspace/Detail/${ws.WorkspaceId}'>${ws.Name}</a></strong>
+                            <br>
+                            <p><strong>${ws.AddressDisplayName}</strong></p>
+                            <a align='right' href='/Workspace/Detail/${ws.WorkspaceId}'>View detail</a>
+                        `)
+
+                    markers.set(key, marker)
+                }
+            })
         })
 
         function seeOnMap(latitude, longitude) {
-        centersMap.flyTo([latitude, longitude], 12, { duration: 1 });
+            centersMap.flyTo([latitude, longitude], 12, { duration: 1 });
         }
     </script>
 }
 
-<main id="workspace-index">
-    <h2>Workspaces</h2>
-    @* <a asp-action="Create" class="btn btn-primary">+ Create New</a> *@
+<main id="workspace-index-page">
+    <h1>Workspaces</h1>
 
     <section id="map-section" aria-label="Map of all workspaces">
         <div id="centers-map" style="height: 400px;"></div>
     </section>
 
     <div id="sort-and-pagination">
+        <!-- Sort -->
         <section>
             @using (Html.BeginForm(
                 actionName: "Index",
@@ -76,22 +96,23 @@
                 @Html.DropDownListFor(
                     m => m.Sort,
                     new SelectList(new[] {
-                        new { Value="None", Text="None" },
-                        new { Value="PriceDescending", Text="Price: High to Low" },
-                        new { Value="PriceAscending", Text="Price: Low to High" }
+                        new { Value=WorkspaceSort.None.ToString(), Text="None" },
+                        new { Value=WorkspaceSort.PriceDescending.ToString(), Text="Price: High to Low" },
+                        new { Value=WorkspaceSort.PriceAscending.ToString(), Text="Price: Low to High" }
                     }, "Value", "Text", Model.Sort),
                     new { onchange = "this.form.submit()" }
                 )
             }
         </section>
 
-        <!-- pagination -->
+        <!-- Pagination -->
         <section id="pagination-section">
-            @Html.ActionLink("back", "Index", "Workspace", new
+            @Html.ActionLink("Back", "Index", "Workspace", new
             {
                 PageNumber = Math.Max(Model.Pagination.PageNumber - 1, 1), 
                 PageSize = Model.Pagination.PageSize
             })
+
             @for (var i = 1; i <= pageCount; i++)
             {
                 if (i == Model.Pagination.PageNumber) 
@@ -105,7 +126,8 @@
                     @Html.ActionLink(i.ToString(), "Index", "Workspace", new { PageNumber = i, Model.Pagination.PageSize })
                 }
             }
-            @Html.ActionLink("next", "Index", "Workspace", new { PageNumber = Math.Min(Model.Pagination.PageNumber + 1, pageCount), PageSize = Model.Pagination.PageSize })
+
+            @Html.ActionLink("Next", "Index", "Workspace", new { PageNumber = Math.Min(Model.Pagination.PageNumber + 1, pageCount), PageSize = Model.Pagination.PageSize })
         </section>
     </div>
     
@@ -113,7 +135,7 @@
     {
         <!-- workspace cards -->
         <ul>
-        @foreach (var ws in paginatedWorkspaces)
+        @foreach (var ws in Model.Workspaces)
         {
             <li>
                 <article>
@@ -121,10 +143,14 @@
                     <p>@ws.Description</p>
                     <p><strong>Coworking Center:</strong> @ws.CoworkingCenter.Name</p>
                     <p><strong>Address:</strong> @ws.CoworkingCenter.Address.StreetAddress, @ws.CoworkingCenter.Address.City.Name, @ws.CoworkingCenter.Address.City.Country.Name</p>
-                    <p><strong>Price:</strong> @(ws.WorkspacePricings.MaxBy(x => x.ValidFrom)!.PricePerHour)$ per hour</p>
+                    <p><strong>Price:</strong> @ws.GetCurrentPricePerHour()$ per hour</p>
+                    <p><strong>Status:</strong> @ws.GetCurrentStatus().Type.ToReprString()</p>
                     <menu class="workspace-card-controls">
-                        <a asp-controller="Workspace" asp-action="Detail" asp-route-id="@ws.WorkspaceId">View Details</a>
-                        <a href="#map-section" onclick="seeOnMap(@ws.CoworkingCenter.Address.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture), @ws.CoworkingCenter.Address.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture))">See on map</a>
+                        @Html.ActionLink(linkText: "View Detail", actionName: "Detail", controllerName: "Workspace", routeValues: new { id = ws.WorkspaceId })
+                        <a href="#map-section" 
+                           onclick="seeOnMap(@ws.CoworkingCenter.Address.Latitude.ToString(CultureInfo.InvariantCulture), @ws.CoworkingCenter.Address.Longitude.ToString(CultureInfo.InvariantCulture))">
+                           See on map
+                       </a>
                     </menu>
                 </article>
             </li>
@@ -140,85 +166,73 @@
 
 @section Styles {
 <style>
-#workspace-index {
+#workspace-index-page {
     display: flex;
     flex-direction: column;
-
-    #sort-and-pagination {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 2rem;
-    }
-
-    #pagination-section {
-        gap: 0.75rem;
-        a {
-            text-decoration: none;
-        }
-    }
-
-    ul {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        list-style: none;
-        padding: 0;
-        row-gap: 0.5rem;
-        column-gap: 0.5rem;
-    }
-
-    ul li {
-        margin-block: 0.5rem;
-    }
-
-    ul li article {
-        display: flex;
-        flex-direction: column;
-
-        border: 1px solid gray;
-        padding: 0.5rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        height: 100%;
-        
-        h2, h3, h4 {
-            color: black;
-        }
-
-        p {
-            color: black;
-        }
-
-        .workspace-card-controls {
-            margin-top: auto;  /* push to bottom */ 
-            display: flex;
-            justify-content: flex-end;
-            gap: 0.5rem;
-        }
-    }
-
-
-    ul li article:hover {
-        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-    }
-        }
-</style>
 }
 
+#workspace-index-page 
+#sort-and-pagination {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+}
 
-@* <table> *@
-@*     <thead> *@
-@*         <td><b>Name</b></td> *@
-@*         <td><b>Description</b></td> *@
-@*     </thead> *@
-@*     @foreach (var workspace in Model) *@
-@*     { *@
-@*         <tr> *@
-@*             <td>@workspace.Name</td> *@
-@*             <td>@workspace.Description</td> *@
-@*             <td> *@
-@*                 <a asp-action="Detail" asp-route-id="@workspace.WorkspaceId">Detail</a> *@
-@*                 <a asp-action="Edit" asp-route-id="@workspace.WorkspaceId">Edit</a> *@
-@*                 <a asp-action="Remove" asp-route-id="@workspace.WorkspaceId">Remove</a> *@
-@*             </td> *@
-@*         </tr> *@
-@*     } *@
-@* </table> *@
+#workspace-index-page 
+#pagination-section {
+    gap: 0.75rem;
+}
+
+#workspace-index-page 
+#pagination-section
+a {
+    margin-left: 0.5rem;
+    text-decoration: none;
+}
+
+#workspace-index-page 
+ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    list-style: none;
+    padding: 0;
+    row-gap: 0.5rem;
+    column-gap: 0.5rem;
+}
+
+#workspace-index-page 
+ul li {
+    margin-block: 0.5rem;
+}
+
+#workspace-index-page 
+ul li article {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid gray;
+    padding: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    height: 100%;
+}
+ 
+#workspace-index-page 
+ul li article
+h2, h3, h4, p {
+        color: black;
+}
+         
+#workspace-index-page 
+ul li article
+.workspace-card-controls {
+    margin-top: auto;  /* push to bottom */ 
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+#workspace-index-page 
+ul li article:hover {
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+}
+</style>
+}

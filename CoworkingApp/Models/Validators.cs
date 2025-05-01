@@ -48,16 +48,16 @@ public class CoworkingCenterValidator : AbstractValidator<CoworkingCenterCreateR
     public CoworkingCenterValidator(IGeocodingService geo)
     {
         // all your normal NotEmpty() + length checks…
-        RuleFor(x => x)
-            .MustAsync(async (dto, ct) =>
-                (await geo.GeocodeAsync(
-                    dto.StreetAddress,
-                    dto.District,
-                    dto.City,
-                    dto.PostalCode,
-                    dto.Country)
-                ) is not null
-            )
-            .WithMessage("Address could not be validated.");
+        //RuleFor(x => x)
+        //    .MustAsync(async (dto, ct) =>
+        //        (await geo.GeocodeAsync(
+        //            dto.StreetAddress,
+        //            dto.District,
+        //            dto.City,
+        //            dto.PostalCode,
+        //            dto.Country)
+        //        ) is not null
+        //    )
+        //    .WithMessage("Address could not be validated.");
     }
 }

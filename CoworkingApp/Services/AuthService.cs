@@ -15,7 +15,7 @@ using Microsoft.IdentityModel.Tokens;
 namespace CoworkingApp.Services;
 public interface IAuthService
 {
-    Task<UserDto>           RegisterUser(UserRegisterRequestDto request);
+    Task<User>              RegisterUser(UserRegisterRequestDto request);
     Task<TokenResponseDto>  LoginUser(UserLoginRequestDto request);
     Task                    LogoutUser(HttpResponse response);
     Task<TokenResponseDto>  RefreshTokens(string userId, string refreshToken);
@@ -32,39 +32,48 @@ public class AuthService
     ) 
     : IAuthService
 {
-    public async Task<UserDto> RegisterUser(UserRegisterRequestDto request)
+    public async Task<User> RegisterUser(UserRegisterRequestDto request)
     {
-        if (context.Users.Any(u => u.Email == request.Email))
+        if (await context.Users.AnyAsync(u => u.Email == request.Email))
         {
             throw new EmailTakenException("Email already exists");
         }
 
+        // already validated by FluentValidation
+        if (request.Password != request.ConfirmPassword)
+        {
+            throw new PasswordMismatchException("Password and confirm password do not match");
+        }
+
         var user = mapper.Map<User>(request);
         
-        var userRole = await context.UserRoles.SingleAsync(ur => ur.Name == UserRoleType.Customer.ToString());
-        user.RoleId = userRole.UserRoleId;
+        var customerRole = await context.UserRoles.SingleAsync(ur => ur.Name == UserRoleType.Customer.ToString());
+        user.RoleId = customerRole.UserRoleId;
         
         var passwordHash = new PasswordHasher<User>().HashPassword(user, request.Password);
         user.PasswordHash = passwordHash;
 
-        context.Users.Add(user);
+        var addedUser = context.Users.Add(user);
         await context.SaveChangesAsync();
         
-        var userDto = mapper.Map<UserDto>(user);
-        
-        return userDto;
+        return addedUser.Entity;
     }
 
     public async Task<TokenResponseDto> LoginUser(UserLoginRequestDto request)
     {
         var user = await context.Users
             .Include(u => u.Role)
-            .SingleOrDefaultAsync(u => u.Email == request.Email)
-                ?? 
-                throw new NotFoundException("User with this email does not exist");
+            .SingleOrDefaultAsync(u => u.Email == request.Email);
+
+        if (user == null)
+        {
+            throw new NotFoundException("User with this email does not exist");
+        }
        
         if (new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, request.Password) == PasswordVerificationResult.Failed)
+        {
             throw new WrongPasswordException("Password verification failed");
+        }
 
         return await CreateTokenResponse(user);
     }
@@ -227,4 +236,3 @@ public class AuthService
         return new JwtSecurityTokenHandler().WriteToken(token);  
     }
 }
-

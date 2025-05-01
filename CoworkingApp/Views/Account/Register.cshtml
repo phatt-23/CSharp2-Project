@@ -1,15 +1,13 @@
-@using CoworkingApp.Models.DtoModels
-@model UserRegisterRequestDto
-
+@model CoworkingApp.Models.DtoModels.UserRegisterRequestDto
 @{
     ViewBag.Title = "Register";
     Layout = "_Layout";
 }
 
-
 <h2>Register</h2>
 
-<form method="post" asp-action="Register">
+@using (Html.BeginForm(actionName: "Register", controllerName: "Account"))
+{
     <div class="field-row">
         <label asp-for="Email"></label>
         <input asp-for="Email" type="email" />
@@ -32,7 +30,7 @@
         <a asp-action="Login">I already have an account</a>
         <button type="submit">Register</button>
     </div>
-</form>
+}
 
 
 

@@ -7,23 +7,21 @@ namespace CoworkingApp.Models.DtoModels;
 // Data DTOs
 //////////////////////////////////////////////////////
 
-[AdminDto] 
+[PublicDataDto] 
 public class UserDto
 {
-    public int Id { get; set; }
+    public int UserId { get; set; }
     public string Email { get; set; } = null!;
-    // public string PasswordHash { get; set; } = null!;
     public int RoleId { get; set; }
     public DateTime CreatedAt { get; set; }
-    public UserRoleDto Role { get; set; } = null!;
 }
 
-[AdminDto]
+[PublicDataDto]
 public class UserRoleDto
 {
-    public int Id { get; set; }
+    public int UserRoleId { get; set; }
     public string Name { get; set; } = null!;
-    public string? Description { get; set; }
+    public string Description { get; set; } = string.Empty;
 }
 
 //////////////////////////////////////////////////////
@@ -40,7 +38,6 @@ public class UserQueryRequestDto
     public UserRoleType? Role { get; set; }
     public bool IncludeReservations { get; set; } = false;
 }
-
 
 public class UserRoleChangeRequestDto
 {

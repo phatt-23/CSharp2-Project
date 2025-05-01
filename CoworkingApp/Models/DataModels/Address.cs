@@ -27,7 +27,7 @@ public partial class Address
 
     [Column("postal_code")]
     [StringLength(10)]
-    public string PostalCode { get; set; } = null!;
+    public string? PostalCode { get; set; }
 
     [Column("last_updated", TypeName = "timestamp without time zone")]
     public DateTime LastUpdated { get; set; }

@@ -52,4 +52,8 @@ public partial class Reservation
     [InverseProperty("Reservations")]
     [JsonIgnore]
     public virtual Workspace Workspace { get; set; } = null!;
+
+    [InverseProperty("Reservation")]
+    [JsonIgnore]
+    public virtual ICollection<WorkspaceHistory> WorkspaceHistories { get; set; } = new List<WorkspaceHistory>();
 }

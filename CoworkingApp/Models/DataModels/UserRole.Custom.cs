@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace CoworkingApp.Models.DataModels;
 
@@ -19,6 +20,7 @@ public partial class UserRole
     }
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum UserRoleType
 {
     [Description("Admin")]

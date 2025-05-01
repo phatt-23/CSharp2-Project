@@ -7,6 +7,7 @@ namespace CoworkingApp.Services;
 public interface IUserService
 {
     Task<IEnumerable<User>> GetUsers(UserQueryRequestDto request);
+    Task<User> GetUserById(int userId);
     Task<User> ChangeUserRole(int userId, UserRoleType roleType);
     Task<User> RemoveUser(int userId);
 }
@@ -34,6 +35,11 @@ public class UserService
                 IncludeUserRole = true,
                 IncludeReservations = request.IncludeReservations,
             });
+    }
+    public async Task<User> GetUserById(int userId)
+    {
+        var users = await GetUsers(new UserQueryRequestDto() { Id = userId });
+        return users.Single();
     }
 
     public async Task<User> ChangeUserRole(int userId, UserRoleType roleType)
