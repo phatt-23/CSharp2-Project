@@ -58,32 +58,50 @@ public class CoworkingCenterReservationCountsResponseDto
 
 // Admin
 
-[AdminDto]
+[AdminDataDto]
 public class WorkspaceRevenueDto
 {
     public required int WorkspaceId { get; set; }
+    public required string WorkspaceDisplayName { get; set; }
     public required int CoworkingCenterId { get; set; }
     public required decimal Revenue { get; set; }
+    public required List<int> FinishedReservations { get; set; }
 }
 
-[AdminDto]
+[AdminResponseDto]
 public class WorkspaceRevenuesResponseDto
 {
     public required TimeBack TimeBack { get; set; }
     public required ICollection<WorkspaceRevenueDto> Revenues { get; set; }
 }
 
+[AdminResponseDto]
+public class WorkspaceRevenueResponseDto
+{
+    public required TimeBack TimeBack { get; set; }
+    public required WorkspaceRevenueDto Revenue { get; set; }
+}
 
-[AdminDto]
+
+[AdminDataDto]
 public class CoworkingCenterRevenueDto
 {
     public required int CoworkingCenterId { get; set; }
+    public required string CoworkingCenterDisplayName { get; set; }
     public required decimal Revenue { get; set; }
+    public required List<WorkspaceRevenueDto> Revenues { get; set; }
 }
 
-[AdminDto]
+[AdminResponseDto]
 public class CoworkingCenterRevenuesResponseDto
 {
     public required TimeBack TimeBack { get; set; }
     public required ICollection<CoworkingCenterRevenueDto> Revenues { get; set; }
+}
+
+[AdminResponseDto]
+public class CoworkingCenterRevenueResponseDto
+{
+    public required TimeBack TimeBack { get; set; }
+    public required CoworkingCenterRevenueDto Revenue { get; set; }
 }

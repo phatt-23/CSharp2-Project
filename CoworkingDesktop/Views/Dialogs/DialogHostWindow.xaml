@@ -1,0 +1,20 @@
+﻿<Window x:Class="CoworkingDesktop.Views.Dialogs.DialogHostWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CoworkingDesktop.Views"
+        mc:Ignorable="d"
+        WindowStartupLocation="CenterOwner"
+        SizeToContent="WidthAndHeight"
+        WindowStyle="ThreeDBorderWindow"
+        ResizeMode="CanResizeWithGrip"
+        ShowInTaskbar="False"
+        Title="{Binding Title}"
+        d:DesignHeight="450" d:DesignWidth="800"
+        >
+
+    <!-- The title must be set by the view models -->
+
+    <ContentPresenter x:Name="ContentHolder"/>
+</Window>

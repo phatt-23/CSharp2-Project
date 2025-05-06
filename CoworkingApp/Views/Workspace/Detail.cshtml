@@ -26,11 +26,11 @@
 <!-- details panel -->
 <section aria-labelledby="workspace-details-heading">
     <!-- name -->
-    <h1 id="center-name">@Model.Workspace.Name</h1>
+    <h1 id="center-name">@Model.Timeline.Workspace.Name</h1>
     <p><strong>Price:</strong> @(Model.PricePerHour)&dollar; per hour</p>
 
     <!-- description -->
-    <p>@Model.Workspace.Description</p>
+    <p>@Model.Timeline.Workspace.Description</p>
 
     @if (Model.LatestWorkspaceHistory != null) {
         @switch (Model.LatestWorkspaceHistory.Status.Type)
@@ -71,34 +71,37 @@
     <!-- address -->
     <address>
         @Model.CoworkingCenter.Address.StreetAddress<br/>
-        @Model.CoworkingCenter.Address.City.Name, @Model.CoworkingCenter.Address.City.Country.Name<br/>
+        @(Model.CoworkingCenter.Address.City?.Name ?? "NO CITY"), @(Model.CoworkingCenter.Address.City?.Country.Name ?? "NO COUNTRY")<br/>
         Lat: @Model.CoworkingCenter.Address.Latitude, Lng: @Model.CoworkingCenter.Address.Longitude
     </address>
 
     <!-- menu -->
     <menu>
-        @if (User.IsAuthenticated())
+        @if (Model.Timeline.Workspace.GetCurrentStatus().Type == WorkspaceStatusType.Available)
         {
-            <menuitem>
-                @Html.ActionLink(
-                    linkText: "Make a reservation",
-                    actionName: "Reserve",
-                    controllerName: "Workspace",
-                    routeValues: new {
-                        id = Model.Workspace.WorkspaceId,
-                        startTime = (DateTime.Now.AddHours(1).ToString("s", CultureInfo.InvariantCulture)),
-                        endTime = (DateTime.Now.AddDays(1).ToString("s", CultureInfo.InvariantCulture)),
-                    })
-            </menuitem>
-        }
-        else
-        {
-            <menuitem>
-                @Html.ActionLink(
-                    linkText: "Make a reservation", 
-                    actionName: "Login",
-                    controllerName: "Account")
-            </menuitem>
+            @if (User.IsAuthenticated())
+            {
+                <menuitem>
+                    @Html.ActionLink(
+                        linkText: "Make a reservation",
+                        actionName: "Reserve",
+                        controllerName: "Workspace",
+                        routeValues: new {
+                            id = Model.Timeline.Workspace.WorkspaceId,
+                            startTime = (DateTime.Now.AddHours(1).ToString("s", CultureInfo.InvariantCulture)),
+                            endTime = (DateTime.Now.AddDays(1).ToString("s", CultureInfo.InvariantCulture)),
+                        })
+                </menuitem>
+            }
+            else
+            {
+                <menuitem>
+                    @Html.ActionLink(
+                        linkText: "Make a reservation", 
+                        actionName: "Login",
+                        controllerName: "Account")
+                </menuitem>
+            }
         }
     </menu>
 </section>
@@ -112,11 +115,11 @@
 
     <div class="timeline-wrapper">
         <ol class="timeline">
-            @foreach (var (segment, index) in Model.TimelineSegments.WithIndex())
+            @foreach (var (segment, index) in Model.Timeline.Segments.WithIndex())
             {
                 var tooltipText = $"<strong>{index + 1})</strong>" +
-                    $"<p><strong>Start:</strong> {segment.Start:f}</p>" +
-                    $"<p><strong>End:</strong> {segment.End:f}</p>";
+                                  $"<p><strong>Start:</strong> {segment.Start:f}</p>" +
+                                  $"<p><strong>End:</strong> {segment.End:f}</p>";
 
                 <li class="segment @(segment.IsReserved ? "reserved" : "free")"
                     style="width:@((segment.Width * 100).ToString(System.Globalization.CultureInfo.InvariantCulture))%">
@@ -137,41 +140,46 @@
                     }
                     else
                     {
-                        @if (User.IsAuthenticated())
+                        @if (Model.Timeline.Workspace.GetCurrentStatus().Type == WorkspaceStatusType.Available)
                         {
-                            @Html.ActionLink(
-                                         linkText: $"{index + 1}",
-                                         actionName: "Reserve",
-                                         controllerName: "Workspace",
-                                         routeValues: new 
-                                         { 
-                                             id = Model.Workspace.WorkspaceId, 
-                                             startTime = MaxDateTime(segment.Start, DateTime.Now.AddHours(1)).ToString("s", CultureInfo.InvariantCulture), 
-                                             endTime = segment.End.ToString("s", CultureInfo.InvariantCulture) 
-                                         })
-                        }
-                        else
-                        {
-                            @Html.ActionLink(
-                                         linkText: $"{index + 1}", 
-                                         actionName: "Login", 
-                                         controllerName: "Account")
+                            @if (User.IsAuthenticated())
+                            {
+                                @Html.ActionLink(
+                                             linkText: $"{index + 1}",
+                                             actionName: "Reserve",
+                                             controllerName: "Workspace",
+                                             routeValues: new 
+                                             { 
+                                                 id = Model.Timeline.Workspace.WorkspaceId, 
+                                                 startTime = MaxDateTime(segment.Start, DateTime.Now.AddHours(1)).ToString("s", CultureInfo.InvariantCulture), 
+                                                 endTime = segment.End.ToString("s", CultureInfo.InvariantCulture) 
+                                             })
+                            }
+                            else
+                            {
+                                @Html.ActionLink(
+                                             linkText: $"{index + 1}", 
+                                             actionName: "Login", 
+                                             controllerName: "Account")
+                            }
                         }
                     }
 
-                    <div class="tooltip">@Html.Raw(tooltipText)</div>
+                    <div class="tooltip">
+                        @Html.Raw(tooltipText)
+                    </div>
                 </li>
             }
         </ol>
         <div class="timeline-axis">
             @{
                 var tickCount = 4;
-                var tickHoursStep = Model.TotalHours / tickCount;
-                var it = Model.TimelineStart;
+                var tickHoursStep = Model.Timeline.TotalHours / tickCount;
+                var it = Model.Timeline.TimelineStart;
 
-                while (it <= Model.TimelineEnd)
+                while (it <= Model.Timeline.TimelineEnd)
                 {
-                    var leftPercent = (it - Model.TimelineStart).TotalHours / Model.TotalHours * 100;
+                    var leftPercent = (it - Model.Timeline.TimelineStart).TotalHours / Model.Timeline.TotalHours * 100;
 
                     <div class="tick" style="left:@leftPercent.ToString(System.Globalization.CultureInfo.InvariantCulture)%">
                         <span>
@@ -195,10 +203,10 @@
             <th>end</th>
         </thead>
         <tbody>
-            @foreach (var (reservation, index) in Model.Reservations.WithIndex())
+            @foreach (var (reservation, index) in Model.Timeline.Reservations.OrderByDescending(r => r.StartTime).WithIndex())
             {
                 <tr>
-                    @if (reservation.CustomerId == Model.UserId)
+                    @if (reservation.CustomerId == Model.Timeline.UserId)
                     {
                         <td>
                             @Html.ActionLink(

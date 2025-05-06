@@ -9,9 +9,10 @@ namespace CoworkingApp.Controllers.ApiEndpointContollers.AdminApiControllers;
 
 public interface IAdminReservationApi
 {
-    Task<ActionResult<IEnumerable<AdminReservationDto>>> GetReservations([FromQuery] AdminReservationQueryRequestDto request);
+    Task<ActionResult<AdminReservationDto>> CreateReservation([FromBody] AdminReservationCreateDto request);
+    Task<ActionResult<AdminReservationsResponseDto>> GetReservations([FromQuery] AdminReservationQueryRequestDto request);
     Task<ActionResult<AdminReservationDto>> GetReservationById(int id);
-    Task<ActionResult<AdminReservationDto>> UpdateReservation(int id, [FromBody] AdminReservationUpdateRequestDto request);
+    Task<ActionResult<AdminReservationDto>> UpdateReservation([FromBody] AdminReservationUpdateRequestDto request);
     Task<ActionResult<AdminReservationDto>> CancelReservation(int id);
 }
 
@@ -25,14 +26,41 @@ public class AdminReservationApiController
     ) 
     : Controller, IAdminReservationApi
 {
+    [HttpPost]
+    public async Task<ActionResult<AdminReservationDto>> CreateReservation([FromBody] AdminReservationCreateDto request)
+    {
+        try
+        {
+            var reservation = await reservationService.CreateReservation(request.CustomerId, request);
+            return Ok(mapper.Map<AdminReservationDto>(reservation));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<AdminReservationDto>>> GetReservations([FromQuery] AdminReservationQueryRequestDto request)
+    public async Task<ActionResult<AdminReservationsResponseDto>> GetReservations([FromQuery] AdminReservationQueryRequestDto request)
     {
         try
         {
             var reservations = await reservationService.AdminGetReservations(request);
-            var reservationDtos = mapper.Map<IEnumerable<AdminReservationDto>>(reservations);
-            return Ok(reservationDtos);
+            if (request.WorkspaceId != null)
+            {
+                reservations = reservations.Where(r => r.WorkspaceId == request.WorkspaceId);
+            }
+
+            var page = Pagination.Paginate(reservations, out int total, request.PageNumber, request.PageSize);
+            var reservationDtos = mapper.Map<List<AdminReservationDto>>(page);
+
+            return Ok(new AdminReservationsResponseDto() 
+            {
+                Reservations = reservationDtos,
+                PageNumber = request.PageNumber,
+                PageSize = request.PageSize,
+                TotalCount = total,
+            });
         }
         catch (Exception e)
         {
@@ -55,8 +83,8 @@ public class AdminReservationApiController
         }
     }
 
-    [HttpPut("{id:int}")]
-    public async Task<ActionResult<AdminReservationDto>> UpdateReservation(int id, [FromBody] AdminReservationUpdateRequestDto request)
+    [HttpPut]
+    public async Task<ActionResult<AdminReservationDto>> UpdateReservation([FromBody] AdminReservationUpdateRequestDto request)
     {
         if (!ModelState.IsValid)
         {
@@ -65,7 +93,7 @@ public class AdminReservationApiController
 
         try
         {
-            var reservation = await reservationService.AdminUpdateReservation(id, request);
+            var reservation = await reservationService.AdminUpdateReservation(request);
             var reservationDto = mapper.Map<AdminReservationDto>(reservation);
             return Ok(reservationDto);
         }

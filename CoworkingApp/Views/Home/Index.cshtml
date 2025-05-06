@@ -1,4 +1,5 @@
-﻿@model CoworkingApp.Models.ViewModels.HomeIndexViewModel;
+﻿@using CoworkingApp.Types
+@model CoworkingApp.Models.ViewModels.HomeIndexViewModel;
 
 @{
     @* ViewData["Title"] = "DeskSpace"; *@
@@ -7,12 +8,12 @@
     var centersData = Model.CoworkingCenters.AsQueryable()
         .Select(c => new {
             c.CoworkingCenterId,
-            c.Name,
+            c.Name, 
             c.Description,
             c.Address,
         });
 
-    string centersJson = System.Text.Json.JsonSerializer.Serialize(centersData);
+    string centersJson = System.Text.Json.JsonSerializer.Serialize(centersData, JsonDefaults.NO_CYCLES);
 }
 
 <main id="home-index">

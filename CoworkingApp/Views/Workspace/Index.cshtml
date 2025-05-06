@@ -2,29 +2,36 @@
 @using CoworkingApp.Services
 @using CoworkingApp.Services.Repositories
 @using System.Globalization
+@using CoworkingApp.Types
 @model CoworkingApp.Models.ViewModels.WorkspaceIndexViewModel;
 
 @{
     ViewBag.Title = "Workspaces";
     Layout = "_Layout";
 
-    ViewBag.Title = "Coworking Centers";
-    Layout = "_Layout";
-
     var pageCount = Math.Ceiling(Model.TotalCount / (decimal)Model.Pagination.PageSize);
 
     // send this data to the js side below to add them onto the leaflet map
     var workspaceData = Model.Workspaces
-        .AsQueryable()
-        .Select(w => new {
-            w.WorkspaceId,
-            w.Name,
-            w.Description,
-            w.CoworkingCenter.Address,
-            AddressDisplayName = $"{w.CoworkingCenter.Address.StreetAddress}, {w.CoworkingCenter.Address.City.Name}, {w.CoworkingCenter.Address.City.Country.Name}",
+        .ToList()
+        .Select(w =>
+        {
+            var city = (w.CoworkingCenter.Address.City != null) ? w.CoworkingCenter.Address.City?.Name : "NO CITY";
+            var country = (w.CoworkingCenter.Address.City?.Country != null) ? w.CoworkingCenter.Address.City?.Country?.Name : "NO COUNTRY";
+
+            var addressDiplay = $"{w.CoworkingCenter.Address.StreetAddress}, {city}, {country}";
+
+            return new
+            {
+                w.WorkspaceId,
+                w.Name,
+                w.Description,
+                w.CoworkingCenter.Address,
+                AddressDisplayName = addressDiplay, 
+            };
         });
 
-    var workspaceJson = System.Text.Json.JsonSerializer.Serialize(workspaceData);
+    var workspaceJson = System.Text.Json.JsonSerializer.Serialize(workspaceData, JsonDefaults.NO_CYCLES);
 }
 
 @section Scripts {
@@ -142,7 +149,7 @@
                     <h3>@ws.Name</h3>
                     <p>@ws.Description</p>
                     <p><strong>Coworking Center:</strong> @ws.CoworkingCenter.Name</p>
-                    <p><strong>Address:</strong> @ws.CoworkingCenter.Address.StreetAddress, @ws.CoworkingCenter.Address.City.Name, @ws.CoworkingCenter.Address.City.Country.Name</p>
+                    <p><strong>Address:</strong> @ws.CoworkingCenter.Address.StreetAddress, @(ws.CoworkingCenter.Address.City?.Name ?? "NO CITY"), @(ws.CoworkingCenter.Address.City?.Country.Name ?? "NO COUNTRY")</p>
                     <p><strong>Price:</strong> @ws.GetCurrentPricePerHour()$ per hour</p>
                     <p><strong>Status:</strong> @ws.GetCurrentStatus().Type.ToReprString()</p>
                     <menu class="workspace-card-controls">

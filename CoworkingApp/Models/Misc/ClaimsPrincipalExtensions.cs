@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc.Razor;
+﻿using CoworkingApp.Models.DataModels;
+using Microsoft.AspNetCore.Mvc.Razor;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
 
@@ -13,4 +14,7 @@ public static class ClaimsPrincipalExtensions
 
     public static int? GetUserId(this ClaimsPrincipal claimsPrincipal)
         => claimsPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value.TryParseToInt();
+
+    public static string? GetEmail(this ClaimsPrincipal claimsPrincipal)
+        => claimsPrincipal.FindFirst(ClaimTypes.Email)?.Value;
 }

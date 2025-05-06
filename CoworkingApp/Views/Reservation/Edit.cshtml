@@ -37,6 +37,7 @@
 @using (Html.BeginForm(actionName: "Edit", controllerName: "Reservation", method: FormMethod.Post))
 {
     @Html.HiddenFor(x => x.Request.ReservationId)
+    @Html.HiddenFor(x => x.Request.WorkspaceId)
 
     <div class="form-row">
         @Html.LabelFor(x => x.Request.StartTime, labelText: "Start time")
@@ -69,7 +70,7 @@
 
     <div class="timeline-wrapper">
         <ol class="timeline">
-            @foreach (var (segment, index) in Model.TimelineSegments.WithIndex())
+            @foreach (var (segment, index) in Model.Timeline.Segments.WithIndex())
             {
                 var tooltipText =
                     $"<strong>{index + 1})</strong>" +
@@ -103,7 +104,7 @@
                                      controllerName: "Workspace",
                                      routeValues: new
                                      {
-                                         id = Model.Workspace.WorkspaceId,
+                                         id = Model.Timeline.Workspace.WorkspaceId,
                                          startTime = MaxDateTime(segment.Start, DateTime.Now.AddHours(1)).ToString("s", CultureInfo.InvariantCulture),
                                          endTime = segment.End.ToString("s", CultureInfo.InvariantCulture)
                                      })
@@ -124,12 +125,12 @@
         <div class="timeline-axis">
             @{
                 var tickCount = 4;
-                var tickHoursStep = Model.TotalHours / tickCount;
-                var it = Model.TimelineStart;
+                var tickHoursStep = Model.Timeline.TotalHours / tickCount;
+                var it = Model.Timeline.TimelineStart;
 
-                while (it <= Model.TimelineEnd)
+                while (it <= Model.Timeline.TimelineEnd)
                 {
-                    var leftPercent = (it - Model.TimelineStart).TotalHours / Model.TotalHours * 100;
+                    var leftPercent = (it - Model.Timeline.TimelineStart).TotalHours / Model.Timeline.TotalHours * 100;
 
                     <div class="tick" style="left:@leftPercent.ToString(System.Globalization.CultureInfo.InvariantCulture)%">
                         <span>
@@ -153,10 +154,10 @@
             <th>end</th>
         </thead>
         <tbody>
-            @foreach (var (reservation, index) in Model.Reservations.WithIndex())
+            @foreach (var (reservation, index) in Model.Timeline.Reservations.OrderByDescending(r => r.StartTime).WithIndex())
             {
                 <tr>
-                    @if (reservation.CustomerId == Model.UserId)
+                    @if (reservation.CustomerId == Model.Timeline.UserId)
                     {
                         <td>
                             @Html.ActionLink(

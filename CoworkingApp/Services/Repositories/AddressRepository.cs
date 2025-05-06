@@ -45,7 +45,9 @@ public class AddressRepository
         query = filter.Latitude.ApplyTo(query, a => a.Latitude);
         query = filter.Longitude.ApplyTo(query, a => a.Longitude);
 
-        query = query.Include(a => a.City).Include(a => a.City.Country);
+        query = query
+            .Include(address => address.City)
+            .ThenInclude(city => city.Country);
 
         return await query.ToListAsync();
     }

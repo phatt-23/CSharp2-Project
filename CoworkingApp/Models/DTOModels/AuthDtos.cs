@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace CoworkingApp.Models.DtoModels;
 
 /////////////////////////////////////////////////
@@ -5,15 +7,20 @@ namespace CoworkingApp.Models.DtoModels;
 /////////////////////////////////////////////////
 
 public class UserRegisterRequestDto
-{ 
+{
+    [Required]
     public string Email { get; set; } = null!;
+    [Required]
     public string Password { get; set; } = null!;
+    [Required]
     public string ConfirmPassword { get; set; } = null!;
 }
 
 public class UserLoginRequestDto
 {
+    [Required]
     public string Email { get; set; } = null!;
+    [Required]
     public string Password { get; set; } = null!;
 }
 

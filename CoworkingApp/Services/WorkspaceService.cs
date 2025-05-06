@@ -30,7 +30,29 @@ public class WorkspaceService
 {
     public async Task<IEnumerable<Workspace>> GetWorkspacesForAdmin(AdminWorkspaceQueryRequestDto request)
     {
-        return await GetWorkspaces(request);
+        var workspaces = await workspaceRepository.GetWorkspaces(new WorkspaceFilter
+        {
+            LikeName = request.NameContains,
+            IncludePricings = true,
+            IncludeCoworkingCenter = true,
+            IncludeHistories = true,
+            IncludeStatus = true,
+            PricePerHour = request.PricePerHour,
+            CoworkingCenterId = request.CoworkingCenterId
+        });
+
+        if (request.Status != null)
+        {
+            workspaces = workspaces.Where(w =>
+            {
+                var currentHistory = w.GetCurrentHistory();
+                return currentHistory == null
+                    ? throw new Exception("Workspace doesn't have status history")
+                    : currentHistory.Status.Type == request.Status.Value;
+            });
+        }
+
+        return workspaces;
     }
 
     public async Task<IEnumerable<Workspace>> GetWorkspaces(WorkspaceQueryRequestDto request)
@@ -83,7 +105,12 @@ public class WorkspaceService
 
     public async Task<IEnumerable<WorkspaceHistory>> GetWorkspaceHistory(int workspaceId)
     {
-        if (!(await workspaceRepository.GetWorkspaces(new WorkspaceFilter() { Id = workspaceId })).Any())
+        var workspace = (await workspaceRepository.GetWorkspaces(new WorkspaceFilter() 
+        { 
+            Id = workspaceId,
+        })).SingleOrDefault();
+
+        if (workspace == null)
         { 
             throw new InvalidOperationException($"Workspace with id '{workspaceId}' doesn't exist");
         }
@@ -91,6 +118,7 @@ public class WorkspaceService
         var histories = await historyRepository.GetHistories(new WorkspaceHistoryFilter
         {
             WorkspaceId = workspaceId,
+            IncludeStatus = true,
         });
 
         return histories;
@@ -138,8 +166,25 @@ public class WorkspaceService
 
         if (!string.IsNullOrEmpty(request.Description)) 
             workspace.Description = request.Description;
+
+        var updated = await workspaceRepository.UpdateWorkspace(workspace);
         
-        return await workspaceRepository.UpdateWorkspace(workspace);
+        if (workspace.GetCurrentStatus().Type != request.Status)
+            await UpdateWorkspaceStatus(request.WorkspaceId, request.Status);
+
+        if (workspace.GetCurrentPricePerHour() != request.PricePerHour)
+        {
+            var pricing = new WorkspacePricing()
+            {
+                WorkspaceId = updated.WorkspaceId,
+                PricePerHour = request.PricePerHour,
+                ValidFrom = DateTime.UtcNow,
+            };
+
+            await pricingRepository.AddPricing(pricing);
+        }
+
+        return await GetWorkspaceById(updated.WorkspaceId);
     }
 
     public async Task<bool> UpdateWorkspaceStatus(int workspaceId, WorkspaceStatusType statusType)

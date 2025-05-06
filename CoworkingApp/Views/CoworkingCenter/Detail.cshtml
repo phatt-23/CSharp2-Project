@@ -1,5 +1,6 @@
 @using CoworkingApp.Models.DataModels
 @using CoworkingApp.Models.Misc
+@using CoworkingApp.Types
 @model CoworkingApp.Models.DataModels.CoworkingCenter
 @{
     Layout = "_Layout";
@@ -9,64 +10,67 @@
     {
         Latitude = Model.Address.Latitude,
         Longitude = Model.Address.Longitude
-    });
-
+    }, JsonDefaults.NO_CYCLES);
 }
 
 @section Scripts {
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const location = JSON.parse('@Html.Raw(locationJson)');
-            const coordinates = [location.Latitude, location.Longitude];
+<script>
+document.addEventListener('DOMContentLoaded', function () 
+{
+    const location = JSON.parse('@Html.Raw(locationJson)');
+    const coordinates = [location.Latitude, location.Longitude];
 
-            let map = L.map($('#map')[0]).setView(coordinates, 10)
+    let map = L.map($('#map')[0]).setView(coordinates, 10)
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map)
 
-            L.marker(coordinates).addTo(map).bindPopup(`
-                <h2>@Model.Name</h2>
+    L.marker(coordinates)
+        .addTo(map)
+        .bindPopup(`
+            <h2>NOWHERE</h2>
                 <p>
-                    @Model.Address.StreetAddress<br/>
-                    @Model.Address.City.Name, @Model.Address.City.Country.Name<br/>
-                    Lat: @Model.Address.Latitude, Lng: @Model.Address.Longitude
-                </p>
-            `)
+                <br/>
+                NO CITY, NO COUNTRY<br/>
+                Lat: 30,000000, Lng: 40,000000
+            </p>
+        `)
 
-            const filterDropdown = document.getElementById('workspace-filter')
-            const workspaceCards = document.querySelectorAll('.workspace-card')
-            const noWorkspacesMessage = document.getElementById('no-workspaces-message')
+    const filterDropdown = document.getElementById('workspace-filter')
+    const workspaceCards = document.querySelectorAll('.workspace-card')
+    const noWorkspacesMessage = document.getElementById('no-workspaces-message')
 
-            filterDropdown.addEventListener('change', function () {
-                const filterValue = filterDropdown.value
-                let visibleCount = 0
+    filterDropdown.addEventListener('change', function () {
+        const filterValue = filterDropdown.value
+        let visibleCount = 0
 
-                workspaceCards.forEach(card => {
-                    const status = card.getAttribute('data-status')
+        workspaceCards.forEach(card => {
+            const status = card.getAttribute('data-status')
 
-                    // Show or hide cards based on the filter
-                    if (filterValue === 'all' || 
-                        (filterValue === 'available' && status === 'Available') ||
-                        (filterValue === 'unavailable' && status !== 'Available')) {
-                        // Show
-                        card.parentElement.style.display = ''
-                        visibleCount++
-                    } else {
-                        // Hide
-                        card.parentElement.style.display = 'none'
-                    }
-                });
-
-                // none are visible, then show different message
-                if (visibleCount == 0) {
-                    noWorkspacesMessage.style.display = 'block';
-                } else {
-                    noWorkspacesMessage.style.display = 'none';
-                }
-            });
+            // Show or hide cards based on the filter
+            if (filterValue === 'all' || 
+                (filterValue === 'available' && status === 'Available') ||
+                (filterValue === 'unavailable' && status !== 'Available')) 
+            {
+                // Show
+                card.parentElement.style.display = ''
+                visibleCount++
+            } else {
+                // Hide
+                card.parentElement.style.display = 'none'
+            }
         })
-    </script>
+
+        // none are visible, then show different message
+        if (visibleCount == 0) {
+            noWorkspacesMessage.style.display = 'block'
+        } else {
+            noWorkspacesMessage.style.display = 'none'
+        }
+    })
+})
+</script>
 }
 
 <main id="coworking-center-detail">
@@ -93,7 +97,7 @@
         <!-- address -->
         <address>
             @Model.Address.StreetAddress<br/>
-            @Model.Address.City.Name, @Model.Address.City.Country.Name<br/>
+            @(Model.Address.City?.Name ?? "NO CITY"), @(Model.Address.City?.Country.Name ?? "NO COUNTRY")<br/>
             Lat: @Model.Address.Latitude, Lng: @Model.Address.Longitude
         </address>
     </section>
@@ -117,7 +121,7 @@
             <option value="available">Available Workspaces</option>
             <option value="unavailable">Unavailable Workspaces</option>
         </select>
-        
+
         <p id="no-workspaces-message" style="display: none;">No workspaces match the selected filter.</p>
 
         @if (Model.Workspaces.Any())
@@ -138,13 +142,16 @@
                             <menu>
                                 @Html.ActionLink(linkText: "Detail", actionName: "Detail", controllerName: "Workspace", new { id = ws.WorkspaceId })
 
-                                @if (User.IsAuthenticated())
+                                @if (ws.GetCurrentStatus().Type == WorkspaceStatusType.Available)
                                 {
-                                    @Html.ActionLink(linkText: "Reserve", actionName: "Reserve", controllerName: "Workspace", new { id = ws.WorkspaceId })
-                                }
-                                else
-                                {
-                                    @Html.ActionLink(linkText: "Reserve", actionName: "Login", controllerName: "Account")
+                                    @if (User.IsAuthenticated())
+                                    {
+                                        @Html.ActionLink(linkText: "Reserve", actionName: "Reserve", controllerName: "Workspace", new { id = ws.WorkspaceId })
+                                    }
+                                    else
+                                    {
+                                        @Html.ActionLink(linkText: "Reserve", actionName: "Login", controllerName: "Account")
+                                    }
                                 }
                             </menu>
                         </article>

@@ -52,8 +52,7 @@ public class ReservationRepository
             ReservationSort.PriceDesc => query.OrderByDescending(x => x.TotalPrice),
             ReservationSort.StartTimeAsc => query.OrderBy(x => x.StartTime),
             ReservationSort.StartTimeDesc => query.OrderByDescending(x => x.StartTime),
-            ReservationSort.None => query,
-            _ => throw new NotImplementedException(),
+            ReservationSort.None => query.OrderByDescending(x => x.StartTime),
         };
 
         return query;
@@ -126,11 +125,9 @@ public class ReservationRepository
             .FirstAsync(x => x.ReservationId == newReservation.ReservationId)
             ?? throw new NotFoundException($"Reservation with id {newReservation.ReservationId} not found");
 
-
-        // check if reservation with id exists
-        if (await context.Reservations.FindAsync(newReservation.ReservationId) == null)
+        if (!(oldReservation.CustomerId == newReservation.CustomerId))
         {
-            throw new Exception($"Reservation with id {newReservation.ReservationId} not found");
+            throw new Exception("Users don't match");
         }
 
         // do the same checks as for adding a reservation
@@ -147,7 +144,7 @@ public class ReservationRepository
         var clashingReservations = await context.Reservations
             .Where(x => !x.IsCancelled &&
                 x.ReservationId != oldReservation.ReservationId &&
-                x.WorkspaceId == oldReservation.WorkspaceId &&
+                newReservation.WorkspaceId == x.WorkspaceId &&
                 newReservation.StartTime < x.EndTime &&
                 newReservation.EndTime > x.StartTime)
             .ToListAsync();
@@ -158,7 +155,7 @@ public class ReservationRepository
         }
 
         var workspace = await context.Workspaces
-            .Where(w => w.WorkspaceId == oldReservation.WorkspaceId)
+            .Where(w => w.WorkspaceId == newReservation.WorkspaceId)
             .Include(w => w.WorkspacePricings)
             .SingleOrDefaultAsync()
             ?? throw new WorkspaceNotFoundException($"Workspace with id {newReservation.WorkspaceId} not found");
@@ -175,10 +172,25 @@ public class ReservationRepository
 
         var totalPrice = workspacePricing.PricePerHour * (decimal)(newReservation.EndTime - newReservation.StartTime).TotalHours;
 
+        var histories = await context.WorkspaceHistories
+            .Include(wh => wh.Status)
+            .Where(wh => 
+                wh.ReservationId != newReservation.ReservationId &&
+                wh.WorkspaceId == workspace.WorkspaceId && 
+                newReservation.StartTime <= wh.ChangeAt && 
+                wh.ChangeAt <= newReservation.EndTime)
+            .ToListAsync();
+
+        if (histories.Any(wh => wh.Status.Type != WorkspaceStatusType.Available))
+        {
+            throw new FormValidationException("Workspace is not available at between these times", nameof(Reservation.StartTime));
+        }
+
         oldReservation.PricingId = workspacePricing.WorkspacePricingId;
         oldReservation.TotalPrice = totalPrice;
         oldReservation.StartTime = newReservation.StartTime;
         oldReservation.EndTime = newReservation.EndTime;
+        oldReservation.WorkspaceId = newReservation.WorkspaceId;
 
         var updatedRes = context.Reservations.Update(oldReservation);
         await context.SaveChangesAsync();

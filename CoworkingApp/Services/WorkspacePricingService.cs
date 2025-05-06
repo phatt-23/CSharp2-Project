@@ -11,6 +11,7 @@ namespace CoworkingApp.Services;
 public interface IWorkspacePricingService
 {
     Task<IEnumerable<WorkspacePricing>> GetPricings(WorkspacePricingQueryRequestDto request);
+    Task<WorkspacePricing> GetPricingById(int id);
     Task<WorkspacePricing> GetLatestPricingOfWorkspace(Workspace workspace);
     Task<WorkspacePricing> CreatePricing(WorkspacePricingCreateRequestDto request);
 }
@@ -40,12 +41,23 @@ public class WorkspacePricingService
         return pricings;
     }
 
+    public async Task<WorkspacePricing> GetPricingById(int id)
+    {
+        var pricings = await pricingRepository.GetPricings(new WorkspacePricingFilter { Id = id });
+
+        if (!pricings.Any())
+            throw new Exception("Reservation not found");
+
+        return pricings.First();
+    }
+
+
     public async Task<WorkspacePricing> CreatePricing(WorkspacePricingCreateRequestDto request)
     {
         // check date timing
         var now = DateTime.Now;
 
-        if (request is { ValidFrom: not null, ValidUntil: not null })
+        if (request.ValidUntil != null)
         {
             if (request.ValidFrom <= now || request.ValidUntil <= now)
                 throw new Exception("Dates must be in the future");

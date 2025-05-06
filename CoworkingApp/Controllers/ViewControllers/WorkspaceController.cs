@@ -67,24 +67,15 @@ public class WorkspaceController
 
             var userId = User.GetUserId() ?? -1;
 
-            var segments = TimelineData.ComputeTimelineSegments(reservations, userId,  
-                out double totalHours, 
-                out DateTime timelineStartTime, 
-                out DateTime timelineEndTime);
+            var timeline = new TimelineData(workspace, reservations, userId);  
 
             return View(new WorkspaceDetailViewModel
             {
-                Workspace = workspace,
                 Histories = histories,
                 CoworkingCenter = center,
-                Reservations = reservations.OrderBy(x => x.StartTime),
-                TimelineSegments = segments,
-                TimelineStart = timelineStartTime,
-                TimelineEnd = timelineEndTime,
-                TotalHours = totalHours,
                 LatestWorkspaceHistory = workspace.GetCurrentHistory(),
+                Timeline = timeline,
                 PricePerHour = workspace.GetCurrentPricePerHour(),
-                UserId = User.GetUserId() ?? -1,
             });
         }
         catch (Exception ex)
@@ -98,6 +89,11 @@ public class WorkspaceController
     public async Task<IActionResult> Reserve(int id, DateTime? startTime, DateTime? endTime)
     {
         var workspace = await workspaceService.GetWorkspaceById(id);
+        if (workspace.GetCurrentStatus().Type != WorkspaceStatusType.Available)
+        {
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+
         var reservations = await reservationRepository.GetReservations(new ReservationsFilter
         {
             WorkspaceId = workspace.WorkspaceId,
@@ -109,21 +105,12 @@ public class WorkspaceController
             return Unauthorized("User not authorized.");
         }
 
-        var segments = TimelineData.ComputeTimelineSegments(reservations, userId.Value,  
-            out double totalHours, 
-            out DateTime timelineStartTime, 
-            out DateTime timelineEndTime);
+        var timeline = new TimelineData(workspace, reservations, userId.Value);  
 
         return View(new WorkspaceReserveViewModel
         {
             Workspace = workspace,
-            Reservations = reservations.OrderBy(x => x.StartTime),
-            TimelineSegments = segments,
-            TotalHours = totalHours,
-            TimelineStart = timelineStartTime,
-            TimelineEnd = timelineEndTime,
-            PricePerHour = workspace.GetCurrentPricePerHour(),
-            UserId = User.GetUserId() ?? -1,
+            Timeline = timeline,
             Request = new ReservationCreateRequestDto
             {
                 WorkspaceId = workspace.WorkspaceId,
@@ -137,6 +124,12 @@ public class WorkspaceController
     [HttpPost]
     public async Task<IActionResult> Reserve(int id, ReservationCreateRequestDto request) 
     {
+        var workspace = await workspaceService.GetWorkspaceById(id);
+        if (workspace.GetCurrentStatus().Type != WorkspaceStatusType.Available)
+        {
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+
         if (!ModelState.IsValid) 
         {
             goto loopBack;
@@ -160,25 +153,18 @@ public class WorkspaceController
         }
 
     loopBack:
-        var workspace = await workspaceService.GetWorkspaceById(id);
         var reservations = await reservationRepository.GetReservations(new ReservationsFilter
         {
             WorkspaceId = workspace.WorkspaceId,
         });
 
-        var segments = TimelineData.ComputeTimelineSegments(reservations, -1,  out double totalHours, out DateTime timelineStartTime, out DateTime timelineEndTime);
+        var timeline = new TimelineData(workspace, reservations, -1);
 
         return View(new WorkspaceReserveViewModel
         {
             Workspace = workspace,
-            Reservations = reservations.OrderBy(x => x.StartTime),
-            UserId = -1,
             Request = request,
-            PricePerHour = workspace.GetCurrentPricePerHour(),
-            TimelineSegments = segments,
-            TotalHours = totalHours,
-            TimelineStart = timelineStartTime,
-            TimelineEnd = timelineEndTime,
+            Timeline = timeline,
         });
     }
 }

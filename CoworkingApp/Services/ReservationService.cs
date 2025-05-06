@@ -12,12 +12,12 @@ public interface IReservationService
     Task<IEnumerable<Reservation>> GetReservations(ReservationQueryRequestDto request);
     Task<Reservation> GetReservationById(int reservationId);
     Task<Reservation> CreateReservation(int customerId, ReservationCreateRequestDto request);
-    Task<Reservation> UpdateReservation(ReservationUpdateRequestDto request);
+    Task<Reservation> UpdateReservation(int customerId, ReservationUpdateRequestDto request);
     Task<Reservation> CancelReservation(int reservationId);
 
     // Admin
     Task<IEnumerable<Reservation>> AdminGetReservations(AdminReservationQueryRequestDto request);
-    Task<Reservation> AdminUpdateReservation(int reservationId, AdminReservationUpdateRequestDto request);
+    Task<Reservation> AdminUpdateReservation(AdminReservationUpdateRequestDto request);
 }
 
 public class ReservationService
@@ -35,6 +35,10 @@ public class ReservationService
             StartTime = request.StartTime,
             EndTime = request.EndTime,
             TotalPrice = request.Price,
+            IncludeCustomer = true,
+            IncludeWorkspace = true,
+            IncludeWorkspacePricing = true,
+            Sort = ReservationSort.StartTimeDesc
         });
 
         return reservations;
@@ -42,7 +46,12 @@ public class ReservationService
 
     public async Task<IEnumerable<Reservation>> AdminGetReservations(AdminReservationQueryRequestDto request)
     {
-        return await GetReservations(request);
+        var res = await GetReservations(request);
+
+        if (request.CustomerId != null)
+            res = res.Where(r => r.CustomerId == request.CustomerId);
+
+        return res;
     }
 
     public async Task<Reservation> GetReservationById(int reservationId)
@@ -52,6 +61,7 @@ public class ReservationService
             Id = reservationId,
             IncludeWorkspace = true,
             IncludeWorkspacePricing = true,
+            IncludeCustomer = true,
         });
 
         if (!reservations.Any())
@@ -66,18 +76,23 @@ public class ReservationService
     {
         var reservation = mapper.Map<Reservation>(request);
         reservation.CustomerId = customerId;
-        return await repository.AddReservation(reservation);
+        var res = await repository.AddReservation(reservation);
+        return await GetReservationById(res.ReservationId);
     }
 
-    public async Task<Reservation> UpdateReservation(ReservationUpdateRequestDto request)
+    public async Task<Reservation> UpdateReservation(int customerId, ReservationUpdateRequestDto request)
     {
-        return await repository.UpdateReservation(mapper.Map<Reservation>(request));
+        var reservation = mapper.Map<Reservation>(request);
+        reservation.CustomerId = customerId;
+        var updated = await repository.UpdateReservation(reservation);
+        return await GetReservationById(updated.ReservationId);
     }
 
-    public async Task<Reservation> AdminUpdateReservation(int reservationId, AdminReservationUpdateRequestDto request)
+    public async Task<Reservation> AdminUpdateReservation(AdminReservationUpdateRequestDto request)
     {
-        var reservation = await GetReservationById(reservationId);
-        return await repository.UpdateReservation(mapper.Map<Reservation>(request));
+        var res = mapper.Map<Reservation>(request);
+        var updated = await repository.UpdateReservation(res);
+        return await GetReservationById(updated.ReservationId);
     }
 
     public async Task<Reservation> CancelReservation(int reservationId)
@@ -89,7 +104,8 @@ public class ReservationService
             throw new ReservationAlreadyTakingPlaceException("Cannot cancel reservation that is already taking place");
         }
 
-        return await repository.CancelReservation(reservation);
+        var res = await repository.CancelReservation(reservation);
+        return await GetReservationById(res.ReservationId);
     }
 }
 

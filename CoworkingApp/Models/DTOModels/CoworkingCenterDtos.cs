@@ -27,7 +27,6 @@ public class AdminCoworkingCenterDto
     public string Description { get; set; } = null!;
     public int AddressId { get; set; } // Id for relate data
     public string AddressDisplayName { get; set; } = null!; // Flattened address for display
-    public int WorkspaceCount { get; set; } // Summary of related data
     public DateTime LastUpdated { get; set; } // Auditing
     public int? UpdatedBy { get; set; } // Auditing
 }
@@ -39,42 +38,40 @@ public class AdminCoworkingCenterDto
 [PublicRequestDto]
 public sealed class CoworkingCenterQueryRequestDto : PaginationRequestDto 
 {
-    public string? NameContains { get; set; }
-    public NullableRangeFilter<decimal> Latitude { get; set; } = new();
-    public NullableRangeFilter<decimal> Longitude { get; set; } = new();
+    [Required] public string? NameContains { get; set; }
+    [Required] public NullableRangeFilter<decimal> Latitude { get; set; } = new();
+    [Required] public NullableRangeFilter<decimal> Longitude { get; set; } = new();
 }
 
 [AdminRequestDto]
 public class CoworkingCenterCreateRequestDto
 {
     [Required] public string Name { get; set; } = null!;
-    public string Description { get; set; } = string.Empty;
-    [Required] public int Latitude { get; set; }
-    [Required] public int Longitude { get; set; }
+    [Required] public string Description { get; set; } = string.Empty;
+    [Required] public decimal Latitude { get; set; }
+    [Required] public decimal Longitude { get; set; }
 }
 
 [AdminRequestDto]
 public class CoworkingCenterCreateWithAddressRequestDto
 {
-    public string Name { get; set; } = null!;
-    public string Description { get; set; } = null!;
-    public string StreetAddress { get; set; } = null!;
-    public string District { get; set; } = null!;
-    public string City { get; set; } = null!;
-    public string PostalCode { get; set; } = null!;
-    public string Country { get; set; } = null!;
+    [Required] public required string Name { get; set; }
+    [Required] public required string Description { get; set; }
+    [Required] public string StreetAddress { get; set; } = null!;
+    [Required] public string District { get; set; } = null!;
+    [Required] public string City { get; set; } = null!;
+    [Required] public string PostalCode { get; set; } = null!;
+    [Required] public string Country { get; set; } = null!;
 }
 
 [AdminRequestDto]
 public class CoworkingCenterUpdateRequestDto
 {
+    [Required] public required int CoworkingCenterId { get; set;}
     [Required] public required string Name { get; set; }
-    [Required] public required string Description { get; set; } 
-    [Required] public required string StreetAddress { get; set; } 
-    [Required] public required string District { get; set; } 
-    [Required] public required string City { get; set; } 
-    [Required] public required string PostalCode { get; set; }
-    [Required] public required string Country { get; set; } 
+    [Required] public required string Description { get; set; }
+    [Required] public required decimal Latitude { get; set; }
+    [Required] public required decimal Longitude { get; set; }
 }
 
 /////////////////////////////////////////////////////////////////////////////////

@@ -76,7 +76,7 @@ public class UserFilter : FilterBase
     public int? RoleId { get; set; }
 
     [CompareTo(nameof(User.IsRemoved))]
-    public bool IsRemoved { get; set; } = false;
+    public bool? IsRemoved { get; set; }
     public RangeFilter<DateTime> CreatedAt { get; set; } = new();
     public NullableRangeFilter<DateTime> RefreshTokenExpiry { get; set; } = new();
     public bool IncludeReservations { get; set; } = false;

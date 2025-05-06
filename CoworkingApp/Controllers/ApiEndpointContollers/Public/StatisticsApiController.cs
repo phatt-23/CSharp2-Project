@@ -32,7 +32,7 @@ public class StatisticsApiController
             {
                 WorkspaceId = w.WorkspaceId,
                 CoworkingCenterId = w.CoworkingCenterId,
-                ReservationCount = w.Reservations.Where(r => r.EndTime >= timeBackDateTime).Count(),
+                ReservationCount = w.Reservations.Count(r => r.EndTime >= timeBackDateTime && r.EndTime <= DateTime.UtcNow),
             })
             .ToListAsync();
 
@@ -54,7 +54,7 @@ public class StatisticsApiController
             .Select(cc => new CoworkingCenterReservationCountDto
             {
                 CoworkingCenterId = cc.CoworkingCenterId,
-                ReservationCount = cc.Workspaces.Sum(w => w.Reservations.Where(r => r.EndTime >= timeBackDateTime).Count()),
+                ReservationCount = cc.Workspaces.Sum(w => w.Reservations.Count(r => r.EndTime >= timeBackDateTime && r.EndTime <= DateTime.UtcNow)),
             })
             .ToListAsync();
 

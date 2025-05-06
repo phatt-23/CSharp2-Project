@@ -1,0 +1,202 @@
+﻿<UserControl x:Class="CoworkingDesktop.Views.Dialogs.WorkspaceDetailView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:CoworkingDesktop.Views.Dialogs" 
+             mc:Ignorable="d" 
+             xmlns:vm="clr-namespace:CoworkingDesktop.ViewModels" 
+             xmlns:c="clr-namespace:CoworkingDesktop.Converters"
+             xmlns:u="clr-namespace:CoworkingDesktop.Views.UserControls"
+             d:DataContext="{d:DesignInstance Type=vm:WorkspaceDetailViewModel}"
+             d:DesignHeight="450" d:DesignWidth="400" d:Background="White"
+             MinHeight="400" MinWidth="800"
+             >
+    <UserControl.Resources>
+        <c:BoolToYesNoConverter x:Key="boolToYesNoConverter"/>
+    </UserControl.Resources>
+    <DockPanel>
+        <StatusBar DockPanel.Dock="Bottom">
+            <TextBlock Text="{Binding Workspace.Name}"/>
+        </StatusBar>
+        <StackPanel>
+            <TextBlock Grid.Column="1" 
+                       FontSize="24"  
+                       Margin="10"
+                       Text="{Binding Workspace.Name}"/>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.RowSpan="2" Style="{StaticResource PaddedBorder}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Description:"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Workspace.Description}"/>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Row="2" Style="{StaticResource PaddedBorder}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Price Per Hour:"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Workspace.PricePerHour}"/>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Row="3" Style="{StaticResource PaddedBorder}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Coworking Center:"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Workspace.CoworkingCenterDisplayName}"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <StackPanel Grid.Column="1">
+                    <Border Style="{StaticResource PaddedBorder}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Status:"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Workspace.Status}"/>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource PaddedBorder}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Removed:"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Workspace.IsRemoved, Converter={StaticResource boolToYesNoConverter}}"/>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource PaddedBorder}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Last Updated:"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Workspace.LastUpdated}"/>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource PaddedBorder}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Finished Reservations:"/>
+                            <TextBlock Grid.Column="1" Text="{Binding TotalFinishedReservation}"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </Grid>
+
+            <Grid Margin="0,10,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="300"/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Style="{StaticResource LightThinBorder}">
+                    <DockPanel>
+
+                        <DockPanel DockPanel.Dock="Top">
+                            <TextBlock Text="Status History"/>
+                            <DockPanel LastChildFill="False">
+
+                                <Button DockPanel.Dock="Right" Content="Next" Command="{Binding StatusHistoryPagingViewModel.NextPageCommand}"/>
+                                <Button DockPanel.Dock="Right" Content="Back" Command="{Binding StatusHistoryPagingViewModel.PrevPageCommand}"/>
+
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="10,0,10,0">
+                                    <TextBlock Text="{Binding StatusHistoryPagingViewModel.CurrentPage}"/>
+                                    <TextBlock Text="/"/>
+                                    <TextBlock Text="{Binding StatusHistoryPagingViewModel.TotalPages}"/>
+                                </StackPanel>
+
+                                <Button DockPanel.Dock="Right" Content="Load" Command="{Binding StatusHistoryPagingViewModel.LoadPageCommand}"/>
+                            </DockPanel>
+                        </DockPanel>
+
+                        <DataGrid ItemsSource="{Binding StatusHistoryPagingViewModel.Items}" 
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  >
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" />
+                                <DataGridTextColumn Header="Changed At" Binding="{Binding ChangeAt}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </Border>
+                <Border  Grid.Column="1" Style="{StaticResource LightThinBorder}">
+                    <DockPanel Grid.Column="1">
+                        <DockPanel DockPanel.Dock="Top">
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="Reservations"/>
+
+                                <Button DockPanel.Dock="Right" Content="Next" Command="{Binding ReservationsPager.NextPageCommand}"/>
+                                <Button DockPanel.Dock="Right" Content="Back" Command="{Binding ReservationsPager.PrevPageCommand}"/>
+
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="10,0,10,0">
+                                    <TextBlock Text="{Binding ReservationsPager.CurrentPage}"/>
+                                    <TextBlock Text="/"/>
+                                    <TextBlock Text="{Binding ReservationsPager.TotalPages}"/>
+                                </StackPanel>
+
+                                <Button DockPanel.Dock="Right" Content="Load" Command="{Binding ReservationsPager .LoadPageCommand}"/>
+                            </DockPanel>
+                        </DockPanel>
+
+                        <DataGrid ItemsSource="{Binding ReservationsPager.Items}" 
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  >
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Workspace" Binding="{Binding WorkspaceDisplayName}" />
+                                <DataGridTextColumn Header="Customer Email" Binding="{Binding CustomerEmail}" />
+                                <DataGridTextColumn Header="Total Price" Binding="{Binding TotalPrice, StringFormat='{}{0:F2}'}"/>
+                                <DataGridTextColumn Header="Start" Binding="{Binding StartTime}" />
+                                <DataGridTextColumn Header="End" Binding="{Binding EndTime}" />
+                                <DataGridTextColumn Header="Created At" Binding="{Binding CreatedAt}" />
+                                <DataGridTextColumn Header="Cancelled" Binding="{Binding IsCancelled, Converter={StaticResource boolToYesNoConverter}}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </DockPanel>
+</UserControl>
+    
+    

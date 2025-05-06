@@ -2,6 +2,7 @@ using AutoMapper;
 using CoworkingApp.Models.DataModels;
 using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Services;
+using CoworkingApp.Services.Repositories;
 using CoworkingApp.Types;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,11 +10,12 @@ using Microsoft.AspNetCore.Mvc;
 namespace CoworkingApp.Controllers.ApiEndpointContollers.AdminApiControllers;
 
 public interface IAdminUserApi
-{ 
-    Task<ActionResult<IEnumerable<UserDto>>> GetUsers(UserQueryRequestDto request);
-    Task<ActionResult<UserDto>> GetUser(int id);
-    Task<ActionResult<UserDto>> RemoveUser(int userId);
-    Task<ActionResult<UserDto>> ChangeUserRole(int userId, [FromQuery] UserRoleType role);
+{
+    Task<ActionResult<AdminUserDto>> CreateUser(AdminUserCreateDto request);
+    Task<ActionResult<AdminUsersResponseDto>> GetUsers(AdminUserQueryRequestDto request);
+    Task<ActionResult<AdminUserDto>> GetUser(int id);
+    Task<ActionResult<AdminUserDto>> RemoveUser(int userId);
+    Task<ActionResult<AdminUserDto>> ChangeUserRole(AdminUserRoleChangeRequestDto request);
 }
 
 [AdminApiController]
@@ -26,14 +28,36 @@ public class AdminUserApiController
     ) 
     : Controller, IAdminUserApi
 {
+    [HttpPost]
+    public async Task<ActionResult<AdminUserDto>> CreateUser(AdminUserCreateDto request)
+    {
+        try 
+        {
+            var user = await userService.CreateUser(request);
+            return Ok(mapper.Map<AdminUserDto>(user));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers([FromQuery] UserQueryRequestDto? request = null)
+    public async Task<ActionResult<AdminUsersResponseDto>> GetUsers([FromQuery] AdminUserQueryRequestDto request)
     {
         try
         {
-            var users = await userService.GetUsers(request ?? new UserQueryRequestDto());
-            var userDtos = mapper.Map<IEnumerable<UserDto>>(users);
-            return Ok(userDtos);
+            var users = await userService.GetUsers(request);
+            var page = Pagination.Paginate(users, out int total, request.PageNumber, request.PageSize);
+            var userDtos = mapper.Map<List<AdminUserDto>>(page);
+
+            return Ok(new AdminUsersResponseDto()
+            { 
+                Users = userDtos,
+                PageNumber = request.PageNumber,
+                PageSize = request.PageSize,
+                TotalCount = total,
+            });
         }
         catch (Exception e)
         {
@@ -42,12 +66,12 @@ public class AdminUserApiController
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<UserDto>> GetUser(int id)
+    public async Task<ActionResult<AdminUserDto>> GetUser(int id)
     {
         try
         {
             var user = await userService.GetUserById(id);
-            var userDto = mapper.Map<UserDto>(user);
+            var userDto = mapper.Map<AdminUserDto>(user);
             return userDto;
         }
         catch (Exception ex)
@@ -57,12 +81,12 @@ public class AdminUserApiController
     }
 
     [HttpDelete("{id:int}")]
-    public async Task<ActionResult<UserDto>> RemoveUser(int id)
+    public async Task<ActionResult<AdminUserDto>> RemoveUser(int id)
     {
         try
         {
             var user = await userService.RemoveUser(id);
-            var userDto = mapper.Map<UserDto>(user);
+            var userDto = mapper.Map<AdminUserDto>(user);
             return Ok(userDto);
         }
         catch (Exception e)
@@ -71,13 +95,13 @@ public class AdminUserApiController
         }
     }
 
-    [HttpPut("{id:int}/role")]
-    public async Task<ActionResult<UserDto>> ChangeUserRole(int id, [FromQuery] UserRoleType role)
+    [HttpPut("role")]
+    public async Task<ActionResult<AdminUserDto>> ChangeUserRole([FromBody] AdminUserRoleChangeRequestDto request)
     {
         try
         {
-            var users = await userService.ChangeUserRole(id, role);
-            var userDto = mapper.Map<UserDto>(users);
+            var users = await userService.ChangeUserRole(request.UserId, request.Role);
+            var userDto = mapper.Map<AdminUserDto>(users);
             return Ok(userDto);
         }
         catch (Exception e)

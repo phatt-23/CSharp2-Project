@@ -14,7 +14,8 @@ public interface ICoworkingCenterService
     Task<CoworkingCenter> GetCenterById(int coworkingCenterId);
     Task<CoworkingCenter> CreateCenter(CoworkingCenterCreateWithAddressRequestDto request);
     Task<CoworkingCenter> CreateCenter(CoworkingCenterCreateRequestDto request);
-    Task<CoworkingCenter> UpdateCenter(int coworkingCenterId, CoworkingCenterUpdateRequestDto request);
+    Task<CoworkingCenter> UpdateCenter(CoworkingCenterUpdateRequestDto request);
+    Task<CoworkingCenter> DeleteCenter(int coworkingCenterId);
 }
 
 public class CoworkingCenterService
@@ -129,11 +130,24 @@ public class CoworkingCenterService
         return addedCenter;
     }
 
-    public async Task<CoworkingCenter> UpdateCenter(int coworkingCenterId, CoworkingCenterUpdateRequestDto request)
+    public async Task<CoworkingCenter> UpdateCenter(CoworkingCenterUpdateRequestDto request)
     {
-        var center = mapper.Map<CoworkingCenter>(request);
-        center.CoworkingCenterId = coworkingCenterId;
+        var address = await addressService.CreateAddressFromCoordinates(request.Latitude, request.Longitude);
+
+        var center = await GetCenterById(request.CoworkingCenterId);
+
+        center.Name = request.Name;
+        center.Description = request.Description;
+        center.AddressId = address.AddressId;
+        center.LastUpdated = DateTime.UtcNow;
 
         return await coworkingCenterRepository.UpdateCenter(center);
     }
+
+    public async Task<CoworkingCenter> DeleteCenter(int coworkingCenterId)
+    {
+        var center = await coworkingCenterRepository.GetCenterById(coworkingCenterId);
+        return await coworkingCenterRepository.RemoveCenter(center);
+    }
+
 }

@@ -37,8 +37,7 @@ public class MapperProfile : Profile
             .ForMember(d => d.UpdatedBy, opt => opt.MapFrom(s => s.UpdatedBy))
             // flatten Address into a single display string
             .ForMember(d => d.AddressDisplayName, opt => opt.MapFrom(s => AddressDisplayNameFromCoworkingCenter(s)))
-            // count related Workspaces
-            .ForMember(d => d.WorkspaceCount, opt => opt.MapFrom(s => s.Workspaces.Count));
+            ;
 
         /*
         CreateMap<CoworkingCenterCreateRequestDto, CoworkingCenter>()
@@ -78,7 +77,9 @@ public class MapperProfile : Profile
                 Enum.Parse<WorkspaceStatusType>(src.WorkspaceHistories
                     .OrderByDescending(wh => wh.ChangeAt)
                     .First().Status.Name)
-            ));
+            ))
+            .ForMember(d => d.Status, o => o.MapFrom(s => s.GetCurrentStatus().Type))
+            .ForMember(d => d.CoworkingCenterDisplayName, o => o.MapFrom(s => s.CoworkingCenter.Name));
 
         CreateMap<WorkspaceDto, Workspace>()
             .ForMember(w => w.WorkspacePricings, o => o.Ignore());
@@ -86,7 +87,9 @@ public class MapperProfile : Profile
         CreateMap<Workspace, WorkspaceDetailDto>().ReverseMap();
 
         CreateMap<Workspace, AdminWorkspaceDto>()
-            
+            .ForMember(d => d.PricePerHour, o => o.MapFrom(s => s.GetCurrentPricePerHour()))
+            .ForMember(d => d.CoworkingCenterDisplayName, o => o.MapFrom(s => s.CoworkingCenter.Name))
+            .ForMember(d => d.Status, o => o.MapFrom(s => s.GetCurrentStatus().Type))
             .ReverseMap();
 
         CreateMap<Workspace, AdminWorkspaceDetailDto>().ReverseMap();
@@ -96,27 +99,43 @@ public class MapperProfile : Profile
         CreateMap<WorkspaceStatus, WorkspaceStatusDto>().ReverseMap();
 
 
-        CreateMap<Reservation, ReservationDto>().ReverseMap();
+        CreateMap<Reservation, ReservationDto>()
+            .ForMember(d => d.WorkspaceDisplayName, o => o.MapFrom(s => s.Workspace.Name))
+            .ForMember(d => d.PricingPerHour, o => o.MapFrom(s => s.Pricing.PricePerHour))
+            .ReverseMap();
 
         CreateMap<Reservation, AnonymousReservationDto>().ReverseMap();
 
-        CreateMap<Reservation, AdminReservationDto>().ReverseMap();
+        CreateMap<Reservation, AdminReservationDto>()
+            .ForMember(d => d.WorkspaceDisplayName, o => o.MapFrom(s => s.Workspace.Name))
+            .ForMember(d => d.PricingPerHour, o => o.MapFrom(s => s.Pricing.PricePerHour))
+            .ForMember(d => d.CustomerEmail, o => o.MapFrom(s => s.Customer!.Email))
+            .ReverseMap();
         
         CreateMap<ReservationCreateRequestDto, Reservation>().ReverseMap();
 
         CreateMap<ReservationUpdateRequestDto, Reservation>().ReverseMap();
 
+        CreateMap<AdminReservationUpdateRequestDto, Reservation>().ReverseMap();
 
 
-        CreateMap<User, UserDto>().ReverseMap();
+        CreateMap<User, UserDto>()
+            .ForMember(d => d.Role, o => o.MapFrom(s => s.Role.Type))
+            .ReverseMap();
 
         CreateMap<UserRegisterRequestDto, User>().ReverseMap();
 
-        CreateMap<UserRole, UserRoleDto>().ReverseMap();
+        CreateMap<UserRole, UserRoleDto>()
+            .ReverseMap();
+
+        CreateMap<AdminUserCreateDto, User>().ReverseMap();
+
+        CreateMap<User, AdminUserDto>()
+            .ForMember(d => d.Role, o => o.MapFrom(s => s.Role.Type))
+            .ReverseMap();
 
 
 
-        
         CreateMap<WorkspacePricing, WorkspacePricingDto>().ReverseMap();
 
         CreateMap<WorkspacePricing, AdminWorkspacePricingDto>().ReverseMap();
@@ -124,7 +143,14 @@ public class MapperProfile : Profile
         CreateMap<WorkspacePricingCreateRequestDto, WorkspacePricing>().ReverseMap();
 
 
-        CreateMap<WorkspaceHistory, WorkspaceHistoryDto>().ReverseMap();
+        CreateMap<WorkspaceHistory, WorkspaceHistoryDto>()
+            .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.Type))
+            .ReverseMap();
 
+
+        CreateMap<Address, AddressDto>()
+            .ForMember(d => d.City, o => o.MapFrom(s => s.City.Name))
+            .ForMember(d => d.Country, o => o.MapFrom(s => s.City.Country.Name))
+            ;
     }
 }

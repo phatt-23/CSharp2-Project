@@ -13,14 +13,19 @@ public class WorkspaceIndexViewModel
     public required WorkspaceSort Sort { get; set; }
 }
 
-public class WorkspaceDetailViewModel : TimelineData
+public class WorkspaceDetailViewModel
 {
     public required IEnumerable<WorkspaceHistory> Histories { get; set; }
     public required WorkspaceHistory? LatestWorkspaceHistory { get; set; }
     public required CoworkingCenter CoworkingCenter { get; set; }
+    public required TimelineData Timeline { get; set; }
+    public decimal PricePerHour { get; set; }
+
 }
 
-public class WorkspaceReserveViewModel : TimelineData
+public class WorkspaceReserveViewModel
 {
+    public required Workspace Workspace { get; set; }
     public required ReservationCreateRequestDto Request { get; set; }
+    public required TimelineData Timeline { get; set; }
 }

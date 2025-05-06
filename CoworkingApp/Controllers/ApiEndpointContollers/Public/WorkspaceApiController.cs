@@ -13,7 +13,6 @@ internal interface IWorkspaceApi
 {
     Task<ActionResult<IEnumerable<WorkspaceDto>>> Get([FromQuery] WorkspaceQueryRequestDto request);
     Task<ActionResult<WorkspaceDto?>> Get(int id);
-    Task<ActionResult<WorkspaceHistoriesResponseDto>> GetHistory(int id);
 }
 
 
@@ -62,20 +61,20 @@ public class WorkspaceApiController
     }
 
     [HttpGet("{id:int}/history")]
-    public async Task<ActionResult<WorkspaceHistoriesResponseDto>> GetHistory(int id)
+    public async Task<ActionResult<WorkspaceHistoriesResponseDto>> GetHistory(int id, [FromQuery] PaginationRequestDto request)
     {
         try
         {
-            var workspace = await workspacesService.GetWorkspaceById(id);
             var histories = await workspacesService.GetWorkspaceHistory(id);
-
-            var workspaceDto = mapper.Map<WorkspaceDto>(workspace);
-            var historyDtos = mapper.Map<IEnumerable<WorkspaceHistoryDto>>(histories);
+            var page = Pagination.Paginate(histories, out int total, request.PageNumber, request.PageSize);
+            var historyDtos = mapper.Map<IEnumerable<WorkspaceHistoryDto>>(page);
 
             return Ok(new WorkspaceHistoriesResponseDto
             {
-                Workspace = workspaceDto,
-                Histories = historyDtos
+                Histories = historyDtos,
+                TotalCount = total,
+                PageNumber = request.PageNumber,
+                PageSize = request.PageSize,
             });
         }
         catch (NotFoundException ex)

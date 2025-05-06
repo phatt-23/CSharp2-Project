@@ -17,7 +17,8 @@ public class ReservationController
         IReservationRepository reservationRepository,
         IWorkspaceService workspaceService,
         ICoworkingCenterService coworkingCenterService,
-        IWorkspaceHistoryRepository workspaceHistoryRepository
+        IWorkspaceHistoryRepository workspaceHistoryRepository,
+        IWorkspaceRepository workspaceRepository
     ) 
     : Controller
 {
@@ -67,7 +68,11 @@ public class ReservationController
     [HttpGet]
     public async Task<IActionResult> Create([FromQuery] int workspaceId, [FromQuery] DateTime? startTime = null, [FromQuery] DateTime? endTime = null)
     {
-        var workspaces = await workspaceService.GetWorkspaces(new ());
+        var workspaces = await workspaceRepository.GetWorkspaces(new WorkspaceFilter
+        {
+            Status = WorkspaceStatusType.
+            Available
+        });
         
         return View(new ReservationCreateGetViewModel
         {
@@ -90,10 +95,24 @@ public class ReservationController
         }
 
         var userId = User.GetUserId();
-
         if (userId == null)
         {
             return Unauthorized(new { message = "User not found" });
+        }
+
+        try
+        {
+            var workspace = await workspaceService.GetWorkspaceById(request.WorkspaceId);
+            if (workspace.GetCurrentStatus().Type != WorkspaceStatusType.Available)
+            {
+                ModelState.AddModelError(nameof(ReservationCreateRequestDto.WorkspaceId), "Workspace isn't available.");
+                goto defer;
+            }
+        }
+        catch
+        {
+            ModelState.AddModelError(nameof(ReservationCreateRequestDto.WorkspaceId), "Workspace not found");
+            goto defer;
         }
 
         try
@@ -137,7 +156,7 @@ public class ReservationController
                 return Unauthorized(new { message = "User not found" });
             }
 
-            var segments = TimelineData.ComputeTimelineSegments(reservations, userId.Value, out double totalHours, out DateTime timelineStartTime, out DateTime timelineEndTime);
+            var timeline = new TimelineData(workspace, reservations, userId.Value);
 
             return View(new ReservationEditViewModel
             {
@@ -146,16 +165,10 @@ public class ReservationController
                     ReservationId = reservation.ReservationId,
                     StartTime = reservation.StartTime,
                     EndTime = reservation.EndTime,
+                    WorkspaceId = reservation.WorkspaceId,
                 },
-                Workspace = workspace,
-                Reservations = reservations.OrderBy(x => x.StartTime),
                 LatestWorkspaceHistory = workspace.GetCurrentHistory(),
-                PricePerHour = workspace.GetCurrentPricePerHour(),
-                UserId = userId.Value,
-                TimelineStart = timelineStartTime,
-                TimelineEnd = timelineEndTime,
-                TotalHours = totalHours,
-                TimelineSegments = segments,
+                Timeline = timeline
             });
         }
         catch (NotFoundException ex)
@@ -173,19 +186,19 @@ public class ReservationController
     {
         try
         {
-            var reservation = await reservationService.UpdateReservation(request);
+            var reservation = await reservationService.UpdateReservation(User.GetUserId()!.Value, request);
             return RedirectToAction(nameof(Detail), new { id = request.ReservationId });
         }
         catch (FormValidationException ex)
         {
             ModelState.AddModelError(ex.PropertyName, ex.Message);
-            return RedirectToAction(nameof(Edit), new { id = request.ReservationId });
         }
         catch (Exception ex)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
-            return RedirectToAction(nameof(Edit), new { id = request.ReservationId });
         }
+
+        return RedirectToAction(nameof(Edit), new { id = request.ReservationId });
     }
 
     [HttpPost]

@@ -43,7 +43,7 @@ public partial class Address
     [ForeignKey("CityId")]
     [InverseProperty("Addresses")]
     [JsonIgnore]
-    public virtual City City { get; set; } = null!;
+    public virtual City City { get; set; }
 
     [InverseProperty("Address")]
     [JsonIgnore]

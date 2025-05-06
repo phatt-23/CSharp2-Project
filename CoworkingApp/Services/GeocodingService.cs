@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System.Globalization;
 
 namespace CoworkingApp.Services;
 
@@ -73,7 +74,11 @@ public class NominatimGeocodingService : IGeocodingService
 
     public async Task<ReverseGeocodeResult?> ReverseGeocode(decimal latitude, decimal longitude)
     {
-        var url = $"https://nominatim.openstreetmap.org/reverse?format=json&lat={latitude}&lon={longitude}&addressdetails=1";
+        var url = $"https://nominatim.openstreetmap.org/reverse?" +
+                  $"format=json&" +
+                  $"lat={latitude.ToString(CultureInfo.InvariantCulture)}&" + 
+                  $"lon={longitude.ToString(CultureInfo.InvariantCulture)}&" + 
+                  $"addressdetails=1";
 
         using var response = await _http.GetAsync(url);
 

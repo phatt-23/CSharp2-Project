@@ -1,0 +1,22 @@
+﻿<UserControl x:Class="CoworkingDesktop.Views.UserControls.TextDetailRowView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:CoworkingDesktop.Views.UserControls"
+             xmlns:vm="clr-namespace:CoworkingDesktop.ViewModels"
+             d:DataContext="{d:DesignInstance Type=vm:TextDetailRowViewModel}"
+             mc:Ignorable="d" 
+             d:DesignHeight="50" d:DesignWidth="400" d:Background="White">
+    <Border Style="{StaticResource LightThinBorder}">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Text="{Binding Label, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+            <TextBlock Grid.Column="1" Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+        </Grid>
+    </Border>
+</UserControl>

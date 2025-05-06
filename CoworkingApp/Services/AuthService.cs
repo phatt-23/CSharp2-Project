@@ -6,6 +6,8 @@ using CoworkingApp.Data;
 using CoworkingApp.Models.DataModels;
 using CoworkingApp.Models.DtoModels;
 using CoworkingApp.Models.Exceptions;
+using CoworkingApp.Models.Misc;
+using CoworkingApp.Services.Repositories;
 using CoworkingApp.Types;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -27,54 +29,32 @@ public interface IAuthService
 public class AuthService
     (
         CoworkingDbContext context,
-        IMapper mapper,
+        IUserService userService,
         IConfiguration configuration
     ) 
     : IAuthService
 {
     public async Task<User> RegisterUser(UserRegisterRequestDto request)
     {
-        if (await context.Users.AnyAsync(u => u.Email == request.Email))
-        {
-            throw new EmailTakenException("Email already exists");
-        }
-
         // already validated by FluentValidation
         if (request.Password != request.ConfirmPassword)
         {
             throw new PasswordMismatchException("Password and confirm password do not match");
         }
 
-        var user = mapper.Map<User>(request);
-        
-        var customerRole = await context.UserRoles.SingleAsync(ur => ur.Name == UserRoleType.Customer.ToString());
-        user.RoleId = customerRole.UserRoleId;
-        
-        var passwordHash = new PasswordHasher<User>().HashPassword(user, request.Password);
-        user.PasswordHash = passwordHash;
+        var user = await userService.CreateUser(new AdminUserCreateDto()
+        {
+            Email = request.Email,
+            Password = request.Password,
+            Role = UserRoleType.Customer,
+        });
 
-        var addedUser = context.Users.Add(user);
-        await context.SaveChangesAsync();
-        
-        return addedUser.Entity;
+        return user;
     }
 
     public async Task<TokenResponseDto> LoginUser(UserLoginRequestDto request)
     {
-        var user = await context.Users
-            .Include(u => u.Role)
-            .SingleOrDefaultAsync(u => u.Email == request.Email);
-
-        if (user == null)
-        {
-            throw new NotFoundException("User with this email does not exist");
-        }
-       
-        if (new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, request.Password) == PasswordVerificationResult.Failed)
-        {
-            throw new WrongPasswordException("Password verification failed");
-        }
-
+        var user = await userService.LoginUser(request);
         return await CreateTokenResponse(user);
     }
 
@@ -84,12 +64,12 @@ public class AuthService
         response.Cookies.Delete("refreshToken");
         return Task.CompletedTask; 
     }
-
     public async Task<TokenResponseDto> RefreshTokens(string userId, string refreshToken)
     {
         var user = await ValidateRefreshToken(userId, refreshToken);
         return await CreateTokenResponse(user);
     }
+
     public async Task<bool> TryRefreshToken(HttpContext context)
     {
         var refreshToken = context.Request.Cookies["refreshToken"];
@@ -198,13 +178,9 @@ public class AuthService
     private async Task<User> ValidateRefreshToken(string userId, string refreshToken)
     {
         // TODO: Remove this, use UUID instead of int
-        var dbUserId = int.Parse(userId);
-        
-        var user = await context.Users
-            .Include(u => u.Role)
-            .SingleOrDefaultAsync(u => u.UserId == dbUserId)
-                ??
-                throw new NotFoundException($"User with id '{userId}' not exist");
+        var dbUserId = userId.TryParseToInt() ?? -1;
+
+        var user = await userService.GetUserById(dbUserId);
 
         if (user.RefreshToken != refreshToken)
             throw new AuthenticationFailureException("Refresh token does not match");

@@ -8,50 +8,52 @@ public record TimelineSegment(
     DateTime End,
     bool IsReserved,
     bool BelongsToUser,
-    double Width);
+    double Width,
+    WorkspaceStatusType Status
+);
 
 public class TimelineData
 {
-    public required List<TimelineSegment> TimelineSegments { get; set; }
-    public required double TotalHours { get; set; }
-    public required decimal PricePerHour { get; set; }
-    public required DateTime TimelineStart { get; set; }
-    public required DateTime TimelineEnd { get; set; }
-    public required int UserId { get; set; }
-    public required IEnumerable<Reservation> Reservations { get; set; } 
-    public required Workspace Workspace { get; set; }
+    public List<TimelineSegment> Segments { get; set; }
+    public double TotalHours { get; set; }
+    public DateTime TimelineStart { get; set; }
+    public DateTime TimelineEnd { get; set; }
+    public int UserId { get; set; }
+    public IEnumerable<Reservation> Reservations { get; set; } 
+    public Workspace Workspace { get; set; }
 
-    public static List<TimelineSegment> ComputeTimelineSegments(
-        IEnumerable<Reservation> reservations,
-        int userId, // User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value.TryParseToInt() ?? -1;
-        out double totalHours,
-        out DateTime startTime,
-        out DateTime endTime)
+    // workspace with included histories and then status
+    public TimelineData(Workspace workspace, IEnumerable<Reservation> reservations, int userId)
     {
         DateTime maxDateTime(DateTime a, DateTime b) => (a > b) ? a : b;
         DateTime minDateTime(DateTime a, DateTime b) => (a < b) ? a : b;
 
+        // primitive
+        this.Workspace = workspace;
+        this.Reservations = reservations;
+        this.UserId = userId;
+
         // the time span of the timeline (max 1 year ahead)
-        var timelineStartTime = startTime = DateTime.Now;
-        var timelineEndTime = endTime = minDateTime(
+        this.TimelineStart = DateTime.Now;
+        this.TimelineEnd = minDateTime(
             reservations
-                .Where(r => !r.IsCancelled && r.EndTime >= timelineStartTime)
+                .Where(r => !r.IsCancelled && r.EndTime >= this.TimelineStart)
                 .MaxBy(r => r.EndTime)?.EndTime ?? DateTime.Today.AddYears(1), 
             DateTime.Today.AddYears(1)
         );
 
-        totalHours = (timelineEndTime - timelineStartTime).TotalHours;
+        this.TotalHours = (this.TimelineEnd - this.TimelineStart).TotalHours;
 
         // sorted reservations by time, filtered by timeline span
 
         // build segments of free and reserved times
-        var segments = new List<TimelineSegment>();
+        this.Segments = [];
 
-        var timeCursor = timelineStartTime;
+        var timeCursor = this.TimelineStart;
 
         foreach (var reservation in reservations
             .AsQueryable()
-            .Where(x => !x.IsCancelled && timelineStartTime <= x.EndTime && x.StartTime <= timelineEndTime)
+            .Where(x => !x.IsCancelled && this.TimelineStart <= x.EndTime && x.StartTime <= this.TimelineEnd)
             .OrderBy(r => r.StartTime)
             .ToList())
         {
@@ -59,40 +61,41 @@ public class TimelineData
 
             if (timeCursor < reservation.StartTime)
             {
-                segments.Add(new TimelineSegment(
+                this.Segments.Add(new TimelineSegment(
                     ReservationId: reservation.ReservationId,
                     Start: timeCursor,
-                    End: maxDateTime(timelineStartTime, reservation.StartTime),
+                    End: maxDateTime(this.TimelineStart, reservation.StartTime),
                     IsReserved: false,
                     BelongsToUser: reservationBelongsToUser,
-                    Width: (maxDateTime(timelineStartTime, reservation.StartTime) - timeCursor).TotalHours / totalHours));
+                    Width: (maxDateTime(this.TimelineStart, reservation.StartTime) - timeCursor).TotalHours / this.TotalHours,
+                    Status: workspace.GetCurrentStatus().Type));
             }
 
             // this reserved segment
-            segments.Add(new TimelineSegment(
+            this.Segments.Add(new TimelineSegment(
                 ReservationId: reservation.ReservationId,
-                Start: maxDateTime(timelineStartTime, reservation.StartTime),
+                Start: maxDateTime(this.TimelineStart, reservation.StartTime),
                 End: reservation.EndTime,
                 IsReserved: true,
                 BelongsToUser: reservationBelongsToUser,
-                Width: (reservation.EndTime - maxDateTime(timelineStartTime, reservation.StartTime)).TotalHours / totalHours));
+                Width: (reservation.EndTime - maxDateTime(this.TimelineStart, reservation.StartTime)).TotalHours / this.TotalHours,
+                Status: workspace.GetCurrentStatus().Type));
 
             // next
             timeCursor = reservation.EndTime;
         }
 
         // free after last reservation?
-        if (timeCursor < timelineEndTime)
+        if (timeCursor < this.TimelineEnd)
         {
-            segments.Add(new TimelineSegment(
+            this.Segments.Add(new TimelineSegment(
                 ReservationId: null,
                 Start: timeCursor,
-                End: timelineEndTime,
+                End: this.TimelineEnd,
                 IsReserved: false,
                 BelongsToUser: false,
-                Width: (timelineEndTime - timeCursor).TotalHours / totalHours));
+                Width: (this.TimelineEnd - timeCursor).TotalHours / this.TotalHours,
+                Status: workspace.GetCurrentStatus().Type));
         }
-
-        return segments;
     }
 }

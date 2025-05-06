@@ -16,8 +16,9 @@ public class ReservationDetailViewModel
     public required Workspace Workspace { get; set; }
 }
 
-public class ReservationEditViewModel : TimelineData
+public class ReservationEditViewModel
 {
     public required WorkspaceHistory? LatestWorkspaceHistory { get; set; }
-    public required ReservationUpdateRequestDto Request { get; set; } = null!;
+    public required ReservationUpdateRequestDto Request { get; set; }
+    public required TimelineData Timeline { get; set; }
 }

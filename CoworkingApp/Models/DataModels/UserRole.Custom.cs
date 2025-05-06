@@ -27,6 +27,4 @@ public enum UserRoleType
     Admin,
     [Description("Customer")]
     Customer,
-    [Description("Moderator")]
-    Moderator,
 }

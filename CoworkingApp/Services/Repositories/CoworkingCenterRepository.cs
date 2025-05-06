@@ -15,6 +15,7 @@ public interface ICoworkingCenterRepository
     Task<IEnumerable<CoworkingCenter>> GetCenters(CoworkingCenterFilter options);
     Task<CoworkingCenter> GetCenterById(int id);
     Task<CoworkingCenter> UpdateCenter(CoworkingCenter coworkingCenter);
+    Task<CoworkingCenter> RemoveCenter(CoworkingCenter coworkingCenter);
 }
 
 public class CoworkingCenterRepository
@@ -69,6 +70,25 @@ public class CoworkingCenterRepository
         await context.SaveChangesAsync();
         return c.Entity;
     }
+
+    public async Task<CoworkingCenter> RemoveCenter(CoworkingCenter coworkingCenter)
+    {
+        coworkingCenter.IsRemoved = true;
+        var center = context.CoworkingCenters.Update(coworkingCenter).Entity;
+
+        await context.Workspaces
+            .Where(w => w.CoworkingCenterId == center.CoworkingCenterId)
+            .ExecuteUpdateAsync(w => w.SetProperty(x => x.IsRemoved, true));
+
+        await context.Reservations
+            .Include(r => r.Workspace)
+            .Where(r => r.Workspace.IsRemoved)
+            .ExecuteUpdateAsync(r => r.SetProperty(x => x.IsCancelled, true));
+
+        await context.SaveChangesAsync();
+        return center;
+    }
+
 }
 
 public class CoworkingCenterFilter : FilterBase

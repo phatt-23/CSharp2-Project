@@ -1,6 +1,7 @@
 @using System.Text.Json;
 @using CoworkingApp.Models.DataModels
 @using CoworkingApp.Services;
+@using CoworkingApp.Types
 @model CoworkingApp.Models.ViewModels.CoworkingCenterIndexViewModel;
 
 @{
@@ -10,16 +11,25 @@
     var pageCount = Math.Ceiling(Model.TotalCount / (decimal)Model.Pagination.PageSize);
 
     // send this data to the js side below to add them onto the leaflet map
-    var centersData = Model.CoworkingCenters.AsQueryable()
-        .Select(c => new {
-            c.CoworkingCenterId,
-            c.Name,
-            c.Description,
-            c.Address,
-            AddressDisplayName = $"{c.Address.StreetAddress}, {c.Address.City.Name}, {c.Address.City.Country.Name}",
+    var centersData = Model.CoworkingCenters
+        .ToList()
+        .Select(c =>
+        {
+            var city = (c.Address.City != null) ? c.Address.City?.Name : "NO CITY";
+            var country = (c.Address.City?.Country != null) ? c.Address.City?.Country?.Name : "NO COUNTRY";
+
+            var addressDiplay = $"{c.Address.StreetAddress}, {city}, {country}";
+
+            return new {
+                c.CoworkingCenterId,
+                c.Name,
+                c.Description,
+                c.Address,
+                AddressDisplayName = addressDiplay,
+            };
         });
 
-    var centersJson = System.Text.Json.JsonSerializer.Serialize(centersData);
+    var centersJson = System.Text.Json.JsonSerializer.Serialize(centersData, JsonDefaults.NO_CYCLES);
 }
 
 @section Scripts {
@@ -91,7 +101,7 @@
                         <h3>@center.Name</h3>
 
                         <p>@center.Description</p>
-                        <p><strong>Address:</strong> @center.Address.StreetAddress, @center.Address.City.Name, @center.Address.City.Country.Name</p>
+                        <p><strong>Address:</strong> @center.Address.StreetAddress, @(center.Address.City?.Name ?? "NO CITY"), @(center.Address.City?.Country.Name ?? "NO COUNTRY")</p>
                         <p>
                             <strong>Available workspaces:</strong> 
                             @center.Workspaces.Where(x => x.GetCurrentStatus().Type == WorkspaceStatusType.Available).Count()

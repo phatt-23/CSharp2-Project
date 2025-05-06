@@ -18,6 +18,7 @@ public class WorkspaceDto
     public required string Description { get; set; }
     public required decimal PricePerHour { get; set; }
     public required int CoworkingCenterId { get; set; }
+    public required string CoworkingCenterDisplayName { get; set; }
     public required WorkspaceStatusType Status { get; set; }
 }
 
@@ -31,8 +32,8 @@ public class WorkspaceDetailDto : WorkspaceDto
 [AdminDataDto]
 public class AdminWorkspaceDto : WorkspaceDto
 {
-    public required bool IsRemoved { get; init; }
-    public required DateTime CreatedAt { get; init; }
+    public bool IsRemoved { get; set; }
+    public DateTime LastUpdated { get; set; }
 }
 
 [AdminDataDto]
@@ -77,6 +78,8 @@ public class WorkspaceUpdateRequestDto
     [Required] public required string Name { get; set; }
     [Required] public required string Description { get; set; }
     [Required] public required int CoworkingCenterId { get; set; }
+    [Required] public decimal PricePerHour { get; set; }
+    [Required] public required WorkspaceStatusType Status { get; set; }
 }
 
 [PublicRequestDto]
@@ -96,16 +99,14 @@ public class WorkspacesResponseDto : PaginationResponseDto
 }
 
 [AdminResponseDto]
-public class AdminWorkspacesResponseDTo : PaginationResponseDto
+public class AdminWorkspacesResponseDto : PaginationResponseDto
 {
     public required IEnumerable<AdminWorkspaceDto> Workspaces { get; set; }
-    public WorkspacePricingDto? LatestPricing { get; set; }
 }
 
 [AdminResponseDto]
-public class WorkspaceHistoriesResponseDto
+public class WorkspaceHistoriesResponseDto : PaginationResponseDto
 {
-    public required WorkspaceDto Workspace { get; set; }
     public required IEnumerable<WorkspaceHistoryDto> Histories { get; set; }
 }
 
@@ -125,4 +126,15 @@ public class WorkspaceReservationsResponseDto
 {
     public required WorkspaceDto Workspace { get; set; }
     public required ICollection<AnonymousReservationDto> Reservations { get; set; }
+}
+
+
+public class AdminWorkspacePricingsResponseDto : PaginationResponseDto
+{
+    public required List<AdminWorkspacePricingDto> Pricings { get; set; }
+}
+
+public class AdminWorkspaceStatusHistoryResponseDto : PaginationResponseDto
+{
+    public required List<WorkspaceStatusDto> Statuses { get; set; }
 }

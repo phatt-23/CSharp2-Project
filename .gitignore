@@ -2,4 +2,5 @@ CoworkingApp/bin/
 CoworkingApp/obj/
 .idea/
 .vs/
-
+CoworkingDesktop/bin
+CoworkingDesktop/obj

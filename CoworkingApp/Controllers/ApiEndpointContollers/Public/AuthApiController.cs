@@ -125,7 +125,7 @@ public class AuthApiController
     [HttpGet("protected")]
     public IActionResult GetProtectedEndpoint()
     {
-        var email = User.Claims.First(c => c.Type == ClaimTypes.Email).Value;
+        var email = User.GetEmail();
         return Ok($"Hi, {email}, you are authenticated!");
     }
 
@@ -133,7 +133,7 @@ public class AuthApiController
     [HttpGet("admin-only")]
     public IActionResult GetAdminOnlyEndpoint()
     {
-        var email = User.Claims.First(c => c.Type == ClaimTypes.Email).Value;
+        var email = User.GetEmail();
         return Ok($"Hi, {email}, you are admin!");
     }
 }

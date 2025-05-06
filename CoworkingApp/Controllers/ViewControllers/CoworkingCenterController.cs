@@ -43,6 +43,7 @@ public class CoworkingCenterController
                 CoworkingCenterId = center.CoworkingCenterId,
                 IncludeLatestPricing = true,
                 IncludeStatus = true,
+                IncludeHistories = true,
             });
 
             center.Workspaces = [..workspaces];

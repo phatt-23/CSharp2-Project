@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text;
+using System.Text.Json.Serialization;
 using AutoFilterer.Swagger;
 using AutoMapper;
 using CoworkingApp.Data;
@@ -236,6 +237,9 @@ internal static class Program
         builder.Services
             .AddHttpClient<IGeocodingService, NominatimGeocodingService>()
             .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+        builder.Services.AddControllers().AddJsonOptions(x =>
+            x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
 
         builder.Services.AddScoped<IWorkspaceHistoryRepository, WorkspaceWorkspaceHistoryRepository>();
         builder.Services.AddScoped<IWorkspaceStatusRepository, WorkspaceStatusRepository>();

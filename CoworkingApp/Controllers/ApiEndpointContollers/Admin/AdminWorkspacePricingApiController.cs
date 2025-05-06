@@ -15,6 +15,7 @@ public interface IAdminWorkspacePricingApi
 
 [AdminApiController]
 [Route("api/admin/pricing/")]
+[Authorize(Roles = "Admin")]
 public class AdminWorkspacePricingApiController
     (
         IWorkspacePricingService pricingService,
@@ -23,10 +24,7 @@ public class AdminWorkspacePricingApiController
     : Controller, IAdminWorkspacePricingApi
 {
     [HttpGet]
-    [Authorize(Roles = "Admin")]
-    public async 
-        Task<ActionResult<IEnumerable<AdminWorkspacePricingDto>>> 
-        GetWorkspacePricingsAsync([FromQuery] WorkspacePricingQueryRequestDto request)
+    public async Task<ActionResult<IEnumerable<AdminWorkspacePricingDto>>> GetWorkspacePricingsAsync([FromQuery] WorkspacePricingQueryRequestDto request)
     {
         try
         {
@@ -36,12 +34,27 @@ public class AdminWorkspacePricingApiController
         }
         catch (Exception ex)
         {
-            return StatusCode(500, ex);
+            return NotFound(ex.Message);
+        }
+    }
+
+    [HttpGet("{id:int}")]
+
+    public async Task<ActionResult<AdminWorkspacePricingDto>> GetWorkspacePricingAsync(int id)
+    {
+        try
+        {
+            var pricing = await pricingService.GetPricingById(id);
+            var pricingDto = mapper.Map<WorkspacePricingDto>(pricing);
+            return Ok(pricingDto);
+        }
+        catch (Exception ex)
+        {
+            return NotFound(ex.Message);
         }
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<AdminWorkspacePricingDto>> CreateWorkspacePricingAsync([FromBody] WorkspacePricingCreateRequestDto request)
     {
         try
@@ -49,9 +62,9 @@ public class AdminWorkspacePricingApiController
             var pricing = await pricingService.CreatePricing(request);
             return Ok(pricing);
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            return StatusCode(500, e);
+            return NotFound(ex.Message);
         }
     }
 }

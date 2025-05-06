@@ -6,6 +6,7 @@ using CoworkingApp.Data;
 using CoworkingApp.Models.DataModels;
 using CoworkingApp.Models.DtoModels;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 using System.Xml.XPath;
 
 namespace CoworkingApp.Services.Repositories;
@@ -74,18 +75,19 @@ public class WorkspaceRepository
                 .First().PricePerHour >= filter.PricePerHour.Min);
         }
 
-        switch (filter.Sort)
+        if (filter.Status != null)
         {
-            case WorkspaceSort.PriceDescending:
-                query = query.OrderByDescending(w => w.WorkspacePricings.OrderByDescending(p => p.ValidFrom).FirstOrDefault()!.PricePerHour);
-                break;
-            case WorkspaceSort.PriceAscending:
-                query = query.OrderBy(w => w.WorkspacePricings.OrderByDescending(p => p.ValidFrom).FirstOrDefault()!.PricePerHour);
-                break;
-            case WorkspaceSort.None:
-            default:
-                break;
+            var workspaces = await query.Include(w => w.WorkspaceHistories).ThenInclude(wh => wh.Status).ToListAsync();
+            query = workspaces.Where(w => w.GetCurrentStatus().Type == filter.Status).AsQueryable();
         }
+
+        query = filter.Sort switch
+        {
+            WorkspaceSort.PriceDescending => query.OrderByDescending(w => w.WorkspacePricings.OrderByDescending(p => p.ValidFrom).FirstOrDefault()!.PricePerHour),
+            WorkspaceSort.PriceAscending => query.OrderBy(w => w.WorkspacePricings.OrderByDescending(p => p.ValidFrom).FirstOrDefault()!.PricePerHour),
+            WorkspaceSort.None => query,
+            _ => throw new UnreachableException()
+        };
 
         return query;
     }
@@ -145,6 +147,8 @@ public class WorkspaceFilter : FilterBase
     public bool IncludeStatus { get; set; } = false;
     public bool IncludeCoworkingCenter { get; set; } = false;
     public bool HasPricing { get; set; } = true;
+
+    public WorkspaceStatusType? Status { get; set; }
 
     public WorkspaceSort Sort { get; set; } = WorkspaceSort.None;
 }

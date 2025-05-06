@@ -25,38 +25,48 @@ public class AddressService(IGeocodingService geocodingService, CoworkingDbConte
         if (reverse.Country == null) 
             throw new Exception("Didn't provide country.");
 
-        if (reverse.City == null) 
-            throw new Exception("Didn't provide city.");
+        if (reverse.City == null)
+        {
+            //reverse.City = "NO CITY";
+             throw new Exception("Didn't provide city.");
+        }
 
         if (reverse.Street == null)
             throw new Exception("Didn't provide street.");
 
         var country = await context.Countries.SingleOrDefaultAsync(c => c.Name == reverse.Country);
 
-        // if country doesn't exist, add it to the database
-        country ??= (await context.Countries.AddAsync(new Country
+        if (country == null)
+        {
+            // if country doesn't exist, add it to the database
+            var addedCountry = await context.Countries.AddAsync(new Country
             {
                 Name = reverse.Country,
-            })).Entity;
+            });
 
-        await context.SaveChangesAsync();
+            country = addedCountry.Entity;
+            await context.SaveChangesAsync();
+        }
 
         var city = await context.Cities.SingleOrDefaultAsync(c => c.Name == reverse.City);
-
-
         // if city doesn't exist, add it to the database
-        city ??= (await context.AddAsync(new City
+        if (city == null)
+        {
+            var addedCity = await context.Cities.AddAsync(new City
             {
                 Name = reverse.City,
-                CountryId = country.CountryId, 
-            })).Entity;
+                CountryId = country.CountryId,
+            });
+
+            city = addedCity.Entity;
+        }
 
         await context.SaveChangesAsync();
 
         // create address record
         var address = new Address
         {
-            StreetAddress = reverse.Street,
+            StreetAddress = reverse.Street ?? string.Empty,
             District = reverse.District,
             CityId = city.CityId,
             PostalCode = reverse.PostalCode,

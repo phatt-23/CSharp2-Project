@@ -12,11 +12,13 @@ public interface IAdminCoworkingCentersApi
     Task<ActionResult<AdminCoworkingCenterQueryResponseDto>> GetCenters([FromQuery] CoworkingCenterQueryRequestDto? request = null);
     Task<ActionResult<AdminCoworkingCenterDto>> GetCenter(int id);
     Task<ActionResult<AdminCoworkingCenterDto>> CreateCenter([FromBody] CoworkingCenterCreateRequestDto request);
-    Task<ActionResult<AdminCoworkingCenterDto>> UpdateCenter(int coworkingCenterId, [FromBody] CoworkingCenterUpdateRequestDto request);
+    Task<ActionResult<AdminCoworkingCenterDto>> UpdateCenter(CoworkingCenterUpdateRequestDto request);
+    Task<ActionResult<AdminCoworkingCenterDto>> DeleteCenter(int id);
 }
 
 [AdminApiController]
 [Route("/api/admin/coworking-center")]
+[Authorize(Roles = "Admin")]
 public class AdminCoworkingCenterApiController
     (
         ICoworkingCenterService coworkingCenterService,
@@ -30,13 +32,14 @@ public class AdminCoworkingCenterApiController
         try
         {
             var centers = await coworkingCenterService.GetCenters(request);
+            var page = Pagination.Paginate(centers, out int total, request.PageNumber, request.PageSize);
 
             return Ok(new AdminCoworkingCenterQueryResponseDto
             {
-                Centers = mapper.Map<IEnumerable<AdminCoworkingCenterDto>>(centers),
-                TotalCount = centers.Count(),
-                PageNumber = request?.PageNumber ?? 1,
-                PageSize = request?.PageSize ?? 10
+                Centers = mapper.Map<IEnumerable<AdminCoworkingCenterDto>>(page),
+                TotalCount = total,
+                PageNumber = request.PageNumber,
+                PageSize = request.PageSize
             });
         }
         catch (Exception e)
@@ -61,7 +64,6 @@ public class AdminCoworkingCenterApiController
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<AdminCoworkingCenterDto>> CreateCenter([FromBody] CoworkingCenterCreateRequestDto request)
     {
         try
@@ -77,12 +79,11 @@ public class AdminCoworkingCenterApiController
     }
 
     [HttpPut]
-    [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<AdminCoworkingCenterDto>> UpdateCenter(int coworkingCenterId, [FromBody] CoworkingCenterUpdateRequestDto request)
+    public async Task<ActionResult<AdminCoworkingCenterDto>> UpdateCenter([FromBody] CoworkingCenterUpdateRequestDto request)
     {
         try
         {
-            var coworkingCenter = await coworkingCenterService.UpdateCenter(coworkingCenterId, request);
+            var coworkingCenter = await coworkingCenterService.UpdateCenter(request);
             return Ok(mapper.Map<AdminCoworkingCenterDto>(coworkingCenter));
         }
         catch (Exception e)
@@ -90,4 +91,19 @@ public class AdminCoworkingCenterApiController
             return BadRequest(e.Message);
         }
     }
+
+    [HttpDelete("{id:int}")]
+    public async Task<ActionResult<AdminCoworkingCenterDto>> DeleteCenter(int id)
+    {
+        try
+        {
+            var coworkingCenter = await coworkingCenterService.DeleteCenter(id);
+            return Ok(mapper.Map<AdminCoworkingCenterDto>(coworkingCenter));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
 }

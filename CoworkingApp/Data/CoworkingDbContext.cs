@@ -38,10 +38,6 @@ public partial class CoworkingDbContext : DbContext
 
     public virtual DbSet<WorkspaceStatus> WorkspaceStatuses { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseNpgsql("Host=localhost;Database=coworking_db;Username=postgres;Password=postgres;");
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Address>(entity =>
@@ -50,9 +46,7 @@ public partial class CoworkingDbContext : DbContext
 
             entity.Property(e => e.LastUpdated).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            entity.HasOne(d => d.City).WithMany(p => p.Addresses)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("address_city_id_fkey");
+            entity.HasOne(d => d.City).WithMany(p => p.Addresses).HasConstraintName("address_city_id_fkey");
         });
 
         modelBuilder.Entity<City>(entity =>
