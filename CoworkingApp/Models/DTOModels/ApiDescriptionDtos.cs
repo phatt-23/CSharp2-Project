@@ -1,27 +1,66 @@
-﻿namespace CoworkingApp.Models.DtoModels;
+﻿using System.Diagnostics.CodeAnalysis;
 
-public class ApiEndpointDescription
+namespace CoworkingApp.Models.DtoModels;
+
+public class ApiEndpointsResponseDto
 {
-    public required string HttpMethod { get; set; }
-    public required string Route { get; set; }
+    public required Dictionary<string, PathItem> Endpoints { get; set; }
+    public required Dictionary<string, Schema> Schemas { get; set; }
+}
+
+public class PathItem
+{
+    public Operation? Get { get; set; }
+    public Operation? Post { get; set; }
+    public Operation? Put { get; set; }
+    public Operation? Delete { get; set; }
+}
+
+public class Operation
+{
     public bool RequiresAuthentication { get; set; }
-    public bool AllowsAnonymous { get; set; }
-    public List<ApiParameterDescription> Parameters { get; set; } = new();
-    public required string ReturnType { get; set; }
+    public List<string> Authorities { get; set; } = [];
+    public List<Parameter> Parameters { get; set; }
+    public Response Response { get; set; }
 }
 
-public class ApiParameterDescription
+public class Parameter
 {
-    public required string Name { get; set; }
-    public required string Type { get; set; }
-    public bool IsComplexType { get; set; }
-    public List<ApiFieldDescription> Fields { get; set; } = [];
+    public string Name { get; set; }
+    public string In { get; set; }
+    public bool Required { get; set; }
+    public Schema Schema { get; set; }
 }
 
-public class ApiFieldDescription
+public class RequestBody
 {
-    public required string Name { get; set; }
-    public required string Type { get; set; }
-    public bool IsComplexType { get; set; }
-    public List<ApiFieldDescription> SubFields { get; set; } = [];
+    public Dictionary<string, Schema> Content { get; set; }
+    public bool Required { get; set; }
 }
+
+public class Response
+{
+    public Dictionary<string, Schema> Content { get; set; }
+}
+
+// polymorphic type, either primitive or object or reference
+public class Schema
+{
+    public string Type { get; set; }
+    public Dictionary<string, Schema> Properties { get; set; } = new();
+    public List<bool> Required { get; set; } = new();
+    public bool IsRange { get; set; } = false;
+    public bool IsDictionary { get; set; } = false;
+    public string? KeyType { get; set; } = null;
+    public string? ValueType { get; set; } = null;
+    public bool IsList { get; set; } = false;
+    public string Reference { get; set; } // $ref
+}
+
+// $references
+public class Components
+{
+    public Dictionary<string, Schema> Schemes { get; set; }  = new();
+}
+
+

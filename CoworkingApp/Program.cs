@@ -1,8 +1,10 @@
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoFilterer.Swagger;
 using AutoMapper;
+using CoworkingApp.Controllers.ApiEndpointContollers.Public;
 using CoworkingApp.Data;
 using CoworkingApp.Middlewares;
 using CoworkingApp.Services;
@@ -20,146 +22,20 @@ using Scalar.AspNetCore;
 
 namespace CoworkingApp;
 
-public record ApiMethodTag(string Tag);
-
-public enum ApiParameterBoundLocation
-{ 
-    Query,
-    Body,
-}
-
-public class ApiParameterSchema
-{
-
-}
-
-public class ApiComponentReference
-{
-    public required ApiObjectComponent Object { get; set; }
-}
-
-public class ApiObjectComponentProperty
-{
-    public required string Name { get; set; }
-    public required ApiComponentReference Reference { get; set; }
-    public Type? Type { get; set; }
-    public string? Format { get; set; }
-    public bool Nullable { get; set; } = false;
-}
-
-public class ApiObjectComponent 
-{
-    public required List<string> RequiredParameters { get; set; }
-    public required List<ApiObjectComponentProperty> Properties { get; set; }
-}
-
-public class ApiMethodParameter 
-{ 
-    public required string Name { get; set; }
-    public required ApiParameterBoundLocation Location { get; set; }
-    public required ApiParameterSchema Schema { get; set; }
-}
-
-public class ApiResponse
-{
-
-}
-
-public class ApiPathMethodDescription
-{
-    public required HttpMethod HttpMethod { get; set; }
-    public required List<ApiMethodTag> Tags { get; set; }
-    public required List<ApiMethodParameter> Parameters { get; set; }
-    public required ApiResponse Response { get; set; }
-}
-
-public class ApiPathDescription 
-{
-    public required List<ApiPathMethodDescription> Methods { get; set; }
-}
 internal static class Program
 {
-    /// Extract the return type of the action method
-    /// Takes of the Task<> and ActionResult<>
-    /// Task<ActionResult<T>> => T
-    private static Type UnwrapReturnType(Type type)
+    private static async Task Main(string[] args)
     {
+        //var endpoints = ApiDocsApiController.Foo();
+        //string json = JsonSerializer.Serialize(endpoints, new JsonSerializerOptions()
+        //{
+        //    WriteIndented = true,
+        //    PropertyNameCaseInsensitive = false,
+        //    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        //});
 
-        Type returnType = type;
+        //Console.WriteLine(json);
 
-        if (returnType.IsGenericType && typeof(Task).IsAssignableFrom(returnType))
-        {
-            returnType = returnType.GetGenericArguments().FirstOrDefault() ?? returnType;
-        }
-
-        if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(ActionResult<>))
-        {
-            returnType = returnType.GetGenericArguments().FirstOrDefault() ?? returnType;
-        }
-
-        return returnType;
-    }
-
-    private static bool IsComplexType(Type type)
-    {
-        if (type.IsPrimitive
-            || type == typeof(string)
-            || type == typeof(DateTime)
-            || type == typeof(decimal))
-        { 
-            return false;
-        }
-
-        if (type.IsGenericType && 
-            type.GetGenericTypeDefinition() == typeof(Nullable<>))
-        {
-            return IsComplexType(Nullable.GetUnderlyingType(type)!);
-        }
-
-        return true;
-    }
-
-    private static void GetJsonSpecification()
-    {
-        var assembly = Assembly.GetExecutingAssembly();
-
-        var apiControllers = assembly
-            .GetTypes()
-            .Where(t => t.IsClass && t.GetCustomAttribute<ApiControllerAttribute>() != null);
-
-        foreach (var controller in apiControllers)
-        {
-            Console.WriteLine(controller.Name);
-
-            var actions = controller.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-
-            foreach (var action in actions)
-            {
-                Console.WriteLine("\t" + "Action: " + action.Name);
-                var parameters = action.GetParameters();
-                foreach(var parameter in parameters) 
-                { 
-                    Console.WriteLine(
-                        "\t\t" + 
-                        parameter.Name + ": " + 
-                        parameter.ParameterType.Name);
-
-                    if (IsComplexType(parameter.ParameterType))
-                    {
-
-                    }
-                }
-
-                Console.WriteLine("\t\t=>" + action.ReturnType.Name);
-                Console.WriteLine("\t\t=>" + UnwrapReturnType(action.ReturnType).Name);
-            }
-        }
-
-    }
-
-    private static void Main(string[] args)
-    {
-        //GetJsonSpecification();
         //return;
 
         /////////////////////////////////////////////////////////////////////////////
